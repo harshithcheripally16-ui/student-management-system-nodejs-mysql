@@ -50,34 +50,6 @@ This backend application handles student record management with enterprise-level
 
 ---
 
-## 📁 Folder Structure
-
-The project layout follows a strict MVC separation of concerns:
-
-```
-├── config/
-│   └── db.js               # Database pool and startup diagnostic connectivity testing
-├── controllers/
-│   └── studentController.js # Extracts payloads, triggers models, and returns REST responses
-├── models/
-│   └── studentModel.js     # Manages raw parameterized SQL queries on MySQL
-├── routes/
-│   └── studentRoutes.js    # Routes URIs to validation guards and controller handlers
-├── middlewares/
-│   ├── errorMiddleware.js  # Environment-aware global error formatting
-│   └── validationMiddleware.js # Payload type-checking and async email uniqueness checks
-├── db/
-│   └── schema.sql          # SQL script containing database schemas and indexes
-├── .env                    # Local environment config variables (ignored in Git)
-├── .env.example            # Sample environment variables for setup reference
-├── app.js                  # Setup Express middlewares, security plugins, and base routes
-├── server.js               # Bootstrapping entry point and graceful process hooks
-├── package.json            # Node project dependencies and execution scripts
-└── README.md               # API Documentation and setup guide
-```
-
----
-
 ## 📊 API Endpoints Table
 
 All endpoints expect and return JSON payloads (`Content-Type: application/json`).
