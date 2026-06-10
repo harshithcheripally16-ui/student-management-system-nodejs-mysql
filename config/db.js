@@ -2,9 +2,12 @@
  * Database Connection Configuration
  * Uses connection pooling for optimal performance and resource sharing.
  * Relies on environment variables for sensitive credentials.
+ * Automatically handles Database & Table initialization.
  */
 
 const mysql = require('mysql2/promise');
+const fs = require('fs/promises');
+const path = require('path');
 require('dotenv').config();
 
 // Define configuration parameters with production-ready defaults
@@ -25,16 +28,50 @@ const poolConfig = {
 const pool = mysql.createPool(poolConfig);
 
 /**
- * Validates the database connectivity on application startup.
- * Logs success or throws error to fail fast if config is wrong.
+ * Validates database connectivity on application startup.
+ * Automatically creates the database and populates tables if they do not exist.
  */
 async function testConnection() {
   let connection;
   try {
+    // 1. Check database connection and verify/create database schema first
+    const setupPool = mysql.createPool({
+      host: poolConfig.host,
+      port: poolConfig.port,
+      user: poolConfig.user,
+      password: poolConfig.password,
+      waitForConnections: true,
+      connectionLimit: 1
+    });
+
+    // Automatically create database if it doesn't exist
+    await setupPool.query(`CREATE DATABASE IF NOT EXISTS \`${poolConfig.database}\``);
+    await setupPool.end();
+
+    // 2. Establish connections to the targeted database pool
     connection = await pool.getConnection();
     console.log(`[Database] Connection pool established successfully with ${poolConfig.host}:${poolConfig.port}`);
+
+    // 3. Auto-initialize tables if the 'students' table does not exist
+    const [tables] = await connection.query(`SHOW TABLES LIKE 'students'`);
+    if (tables.length === 0) {
+      console.log('[Database] "students" table not found. Auto-initializing schema from db/schema.sql...');
+      const schemaPath = path.join(__dirname, '../db/schema.sql');
+      const schemaSql = await fs.readFile(schemaPath, 'utf8');
+
+      // Clean comment indicators and split script into individual query statements
+      const queries = schemaSql
+        .split(';')
+        .map(q => q.trim())
+        .filter(q => q.length > 0 && !q.startsWith('--') && !q.startsWith('CREATE DATABASE') && !q.startsWith('USE'));
+
+      for (const query of queries) {
+        await connection.query(query);
+      }
+      console.log('[Database] Auto-initialization completed successfully.');
+    }
   } catch (err) {
-    console.error('[Database Error] Failed to connect to MySQL database:', err.message);
+    console.error('[Database Error] Failed to connect or auto-initialize MySQL database:', err.message);
     throw err;
   } finally {
     if (connection) {
