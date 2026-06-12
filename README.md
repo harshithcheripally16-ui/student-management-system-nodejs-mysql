@@ -1,75 +1,139 @@
-# 🎓 Student Management System API
+# 🎓 Academix: Full-Stack Student Management System
 
 [![Node.js](https://img.shields.io/badge/Node.js-v18+-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Express.js](https://img.shields.io/badge/Express.js-v4-000000?logo=express&logoColor=white)](https://expressjs.com/)
 [![MySQL](https://img.shields.io/badge/MySQL-v8-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
-[![REST API](https://img.shields.io/badge/REST--API-Standard-orange)](#api-endpoints-table)
+[![REST API](https://img.shields.io/badge/REST--API-Standard-orange)](#-api-endpoints)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A production-grade REST API backend for managing student records. This project is built using the **Model-View-Controller (MVC)** architectural pattern to showcase clean code practices, input sanitization, database connection pooling, centralized error propagation, and graceful process shutdown lifecycles—key competencies for a **Software Delivery Engineer** role.
+A production-grade, full-stack student record management portal. Built with **Node.js**, **Express.js**, **MySQL**, and **REST APIs**, featuring a responsive **Single Page Application (SPA)** frontend dashboard styled with premium **vanilla CSS3** (utilizing dark mode and glassmorphism layouts).
+
+This repository is structured to showcase enterprise software delivery engineering principles: MVC architecture, parameterized query interfaces, client/server-side validation, connection pooling, fail-fast boot diagnostics, global error interception, and graceful signal terminations.
 
 ---
 
 ## 📌 Project Overview
 
-This backend application handles student record management with enterprise-level robustness. It serves as a reference for how to structure a RESTful service to protect against OWASP vulnerabilities, maintain separation of concerns, optimize database resource utilization, and ensure smooth developer operations (DevOps) and deployments.
+This full-stack system provides administrators with a complete dashboard to register, view, update, search, and delete student records. It has been built with a strong focus on security (mitigating SQL Injection and XSS attacks), reliability (graceful database pool terminations), and user experience (responsive design and micro-animations). 
+
+Instead of showing raw JSON data at the root route, the Express server serves a polished client-side dashboard SPA that syncs dynamically with the REST endpoints.
 
 ---
 
-## 📝 Resume Highlights
+## 📝 Resume Highlights (ATS-Friendly)
 
-* **Engineered a Production-Grade REST API**: Developed a student management service using **Node.js**, **Express.js**, and **MySQL** structured around the **MVC** architecture, utilizing parameterized SQL statements to safeguard against SQL Injection (OWASP Top 10).
-* **Implemented Strict Validator Guards**: Built request schema validation using `express-validator`, incorporating custom asynchronous integrity checks to enforce email uniqueness and data bounds (academic years 1-6) directly at the router level.
-* **Designed Highly Resilient Lifecycles**: Optimized DB connection efficiency via MySQL connection pooling (`mysql2/promise`), and implemented active process signal interception (`SIGINT`, `SIGTERM`) for clean database connection releases and graceful application shutdown.
+* **Engineered a Full-Stack Web Application**: Developed a Student Management System using **Node.js**, **Express.js**, and **MySQL** with a responsive **Vanilla JS** SPA dashboard, implementing **MVC architecture** and parameterized SQL queries to optimize separation of concerns and mitigate SQL injection vectors.
+* **Implemented Asynchronous Validation & Security**: Configured request validation pipelines using `express-validator` and custom middleware to verify email uniqueness in the database prior to controller dispatch, while deploying **Helmet CSP headers** to sanitize assets.
+* **Optimized Database Resources & Lifecycles**: Built resilient connection pooling via `mysql2/promise` with auto-schema provisioning, and programmed signal listeners (`SIGINT`/`SIGTERM`) to enforce graceful pool closures, preventing memory leaks and orphaned connections.
 
 ---
 
-## 🚀 Key Features
+## 🚀 Features
 
-* **MVC Design Pattern**: Clean separation between database schemas/models, business workflows (controllers), and validation/routing boundaries.
-* **Database Connection Pooling**: Built with `mysql2/promise` using pooled resources to minimize handshake overhead and scale efficiently.
-* **Automatic Schema Initializer**: Server automatically boots, creates the database, and provisions table schemas and indexes if they are missing.
-* **Strict Input Validation & Sanitization**: Integrates `express-validator` schema guards to trim parameters and normalize email casing.
-* **Asynchronous Integrity Checks**: Validation middleware checks email uniqueness directly in the database before passing control to routers.
-* **Robust SQL Injection Mitigation**: Exclusively utilizes parameterized (prepared) statements for all database interactions.
-* **Graceful Lifecycles**: Gracefully intercepts termination signals (`SIGINT`, `SIGTERM`) to shut down connections cleanly and release the MySQL database pool.
+* **Single Page Application (SPA)**: Dynamic view swapping using hash-based routing (`#/dashboard`, `#/students`) avoiding full-page reloads.
+* **Auto-Provisioning Database**: Server automatically creates the database and populates tables, constraints, and indexes on boot if missing.
+* **Dashboard Widgets**: Displays real-time student counts, department distribution statistics, and recently enrolled records.
+* **Advanced Directory Controls**: Fully interactive data table with column-based sorting, department filtering, and pagination.
+* **Dual-Layer Validation**: Strict frontend regex layout checking paired with asynchronous backend database checks to block duplicate emails.
 * **Centralized Error Propagation**: Catches exceptions globally, formatting responses to consumers while hiding raw stack traces in production to prevent metadata leakage.
+* **Graceful Termination**: Closes active database pool connections when the server intercepts shutdown signals.
 * **Production Hardened**: Integrated with `helmet` for secure HTTP response headers and `cors` for cross-origin compliance.
 
 ---
 
 ## 🛠️ Tech Stack
 
-* **Runtime Environment**: Node.js (v18.x+)
+* **Backend Runtime**: Node.js (v18.x+)
 * **Web Framework**: Express.js
 * **Database Engine**: MySQL (v8.0+)
 * **Query Client**: mysql2 (Promise-wrapped)
 * **Request Validation**: express-validator
-* **Utilities**: dotenv, morgan, cors, helmet
-* **Development Tool**: nodemon (Hot-reloading server)
+* **Frontend Stack**: HTML5, CSS3 (Vanilla Dark Glassmorphism), JavaScript (ES6 SPA Router)
+* **HTTP Styling Utilities**: Font Awesome 6 (Icons), Google Fonts (Outfit & Inter)
+* **Security & Loggers**: helmet, cors, morgan, dotenv
 
 ---
 
-## 📊 API Endpoints Table
+## 📐 Architecture
 
-All endpoints expect and return JSON payloads (`Content-Type: application/json`).
+The application implements a strict Model-View-Controller (MVC) architectural pattern. The static SPA frontend is hosted directly from the Express static asset pipeline.
 
-| Method | Endpoint | Request Body Constraints | Description | Standard Status Code |
-|:---|:---|:---|:---|:---|
-| **GET** | `/` | None | API Root (Service sanity check) | `200 OK` |
-| **GET** | `/students` | None | Retrieve all student records (Newest first) | `200 OK` |
-| **GET** | `/students/:id` | Path parameter `id` (positive integer) | Retrieve a single student's details by ID | `200 OK` / `404 Not Found` |
-| **POST** | `/students` | `{ name, email, department, year }` | Create a new student record (Verifies email uniqueness) | `201 Created` / `400 Bad Request` |
-| **PUT** | `/students/:id` | `{ name, email, department, year }` | Update an existing student record (Validates unique email) | `200 OK` / `400 Bad Request` / `404` |
-| **DELETE**| `/students/:id` | Path parameter `id` (positive integer) | Permanently delete a student record | `200 OK` / `404 Not Found` |
+```
+       +-------------------------------------------------------------+
+       |                         BROWSER                             |
+       |  +-------------------+              +--------------------+  |
+       |  |   SPA View (HTML) |              |  JS Router/API     |  |
+       |  +---------+---------+              +---------+----------+  |
+       +------------|----------------------------------|-------------+
+                    | (Serves Static)                  | (REST Requests)
+                    v                                  v
+       +-------------------------------------------------------------+
+       |                      EXPRESS SERVER                         |
+       |  +-------------------+              +--------------------+  |
+       |  |  Static Assets    |              |  Routes / Guards   |  |
+       |  +-------------------+              +---------+----------+  |
+       |                                               |             |
+       |                                               v             |
+       |                                     +--------------------+  |
+       |                                     |    Controllers     |  |
+       |                                     +---------+----------+  |
+       +-----------------------------------------------|-------------+
+                                                       v
+                                             +--------------------+
+                                             |       Models       |
+                                             +---------+----------+
+                                                       |
+                                                       v (Pool Query)
+                                             +--------------------+
+                                             |     MYSQL DB       |
+                                             +--------------------+
+```
+
+---
+
+## 📁 Folder Structure
+
+```
+├── config/
+│   └── db.js               # Database pool, startup connection testing, and auto-init
+├── controllers/
+│   └── studentController.js # Extracts payloads, calls models, and formats REST responses
+├── models/
+│   └── studentModel.js     # Manages raw parameterized SQL queries on MySQL
+├── routes/
+│   └── studentRoutes.js    # Routes URIs to validation guards and controller handlers
+├── middlewares/
+│   ├── errorMiddleware.js  # Environment-aware global error formatting & SQL exception parser
+│   └── validationMiddleware.js # Payload type-checking and async email uniqueness checks
+├── db/
+│   └── schema.sql          # SQL script containing database schemas and indexes
+├── public/                 # Static Frontend SPA Assets
+│   ├── index.html          # Main HTML layout wrapper
+│   ├── css/
+│   │   └── styles.css      # Premium custom dark-theme stylesheet
+│   └── js/
+│       ├── api.js          # Asynchronous HTTP API consumer client
+│       └── app.js          # SPA hash router, metrics calculators, and state controllers
+├── screenshots/
+│   └── dashboard.png       # UI preview mockup for recruiter review
+├── .env                    # Local environment variables (ignored in Git)
+├── .env.example            # Sample environment variables template
+├── app.js                  # Setup Express middlewares, security plugins, and routing
+├── server.js               # Bootstrapping entry point and graceful process hooks
+├── package.json            # Node project dependencies and execution scripts
+└── README.md               # Extensive developer guide and API documentation
+```
 
 ---
 
 ## 🗄️ Database Schema
 
-The SQL structure features secondary indexes to optimize query execution and constraints to maintain data integrity:
+The SQL structure (defined in [db/schema.sql](file:///C:/Student_management/db/schema.sql)) features secondary indexes to optimize query execution and constraints to maintain data integrity:
 
 ```sql
+CREATE DATABASE IF NOT EXISTS student_db;
+USE student_db;
+
 CREATE TABLE IF NOT EXISTS students (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -84,9 +148,29 @@ CREATE TABLE IF NOT EXISTS students (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
-* **CHECK (year >= 1 AND year <= 6)**: Prevents garbage data insertion.
-* **UNIQUE (email)**: Enforces email integrity.
-* **INDEX idx_email, idx_department**: Accelerates index-scans for common queries.
+---
+
+## 📊 API Endpoints
+
+All endpoints expect and return JSON payloads (`Content-Type: application/json`).
+
+| Method | Endpoint | Request Body Constraints | Description | Standard Status Code |
+|:---|:---|:---|:---|:---|
+| **GET** | `/` | None | Serves the frontend SPA | `200 OK` |
+| **GET** | `/students` | None | Retrieve all student records (Newest first) | `200 OK` |
+| **GET** | `/students/:id` | Path parameter `id` (positive integer) | Retrieve a single student's details by ID | `200 OK` / `404 Not Found` |
+| **POST** | `/students` | `{ name, email, department, year }` | Create a new student record (Verifies email uniqueness) | `201 Created` / `400 Bad Request` |
+| **PUT** | `/students/:id` | `{ name, email, department, year }` | Update an existing student record (Validates unique email) | `200 OK` / `400 Bad Request` / `404` |
+| **DELETE**| `/students/:id` | Path parameter `id` (positive integer) | Permanently delete a student record | `200 OK` / `404 Not Found` |
+
+---
+
+## 📸 Screenshots Section
+
+### Portal Dashboard Layout
+Below is a visual preview of the dark-mode glassmorphic interface, featuring interactive dashboard metrics, quick action triggers, dynamic student records, and layout menus:
+
+![EduPortal Dashboard Preview](screenshots/dashboard.png)
 
 ---
 
@@ -111,24 +195,36 @@ cp .env.example .env
 
 ---
 
-## 🛠️ Installation & Running Locally
+## 🛠️ Installation Guide & Running Locally
 
-1. **Configure credentials** in the local `.env` file:
-   ```env
-   DB_USER=root
-   DB_PASSWORD=your_mysql_password
-   ```
+### Prerequisites
+* **Node.js** (v18.x+)
+* **MySQL Server** (Running locally or as a remote instance)
 
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
+### 1. Configure the local database environment
+Open the [.env](file:///C:/Student_management/.env) file in your project folder and verify that the database login credentials match your local MySQL server setup:
+```env
+DB_USER=root
+DB_PASSWORD=your_mysql_password
+```
+*(Leave `DB_PASSWORD` blank if you do not have a password set on your local MySQL root account).*
 
-3. **Start the application**:
-   ```bash
-   npm run dev
-   ```
-   *(Note: The server will automatically connect to MySQL, create the `student_db` schema, and provision the tables—no manual SQL import required).*
+### 2. Install NPM packages
+```bash
+npm install
+```
+
+### 3. Run the application
+* **Development Mode** (Runs using `nodemon` for file watch and auto-restart):
+  ```bash
+  npm run dev
+  ```
+* **Production Mode** (Standard entry execution):
+  ```bash
+  npm start
+  ```
+
+*(Note: The server will automatically connect to MySQL, create the `student_db` schema, and provision the tables—no manual SQL import required).*
 
 ---
 
@@ -136,8 +232,9 @@ cp .env.example .env
 
 To align with modern Software Delivery principles, future versions will incorporate:
 
-1. **Containerization**: Define `Dockerfile` and `docker-compose.yml` to package the Node app and MySQL database, simplifying environment provisioning.
+1. **Containerization**: Define `Dockerfile` and `docker-compose.yml` to package the Node app and MySQL database, simplifying environment provisioning and staging.
 2. **Database Migrations**: Adopt Knex.js or Sequelize migrations for version-controlled database schema changes, removing manual SQL scripting.
 3. **CI/CD Pipeline**: Write a GitHub Actions workflow to run automated code checks and integration test scripts on every pull request.
 4. **Secure Authentication**: Introduce JWT authentication and Role-Based Access Control (RBAC) to restrict update/delete actions to administrators.
 5. **OpenAPI / Swagger Integration**: Generate interactive API documentation available at a `/api-docs` endpoint for client developers.
+6. **Logging Aggregation**: Implement Winston or Bunyan loggers to route logs to central systems like Datadog or ELK stack.
