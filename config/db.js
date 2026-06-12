@@ -34,7 +34,7 @@ const pool = mysql.createPool(poolConfig);
 async function testConnection() {
   let connection;
   try {
-    // 1. Check database connection and verify/create database schema first
+    // 1. Establish initial diagnostics connection to verify/create database schema
     const setupPool = mysql.createPool({
       host: poolConfig.host,
       port: poolConfig.port,
@@ -44,11 +44,11 @@ async function testConnection() {
       connectionLimit: 1
     });
 
-    // Automatically create database if it doesn't exist
+    // Create database if it doesn't exist
     await setupPool.query(`CREATE DATABASE IF NOT EXISTS \`${poolConfig.database}\``);
     await setupPool.end();
 
-    // 2. Establish connections to the targeted database pool
+    // 2. Establish connection to the targeted database pool
     connection = await pool.getConnection();
     console.log(`[Database] Connection pool established successfully with ${poolConfig.host}:${poolConfig.port}`);
 
@@ -59,11 +59,17 @@ async function testConnection() {
       const schemaPath = path.join(__dirname, '../db/schema.sql');
       const schemaSql = await fs.readFile(schemaPath, 'utf8');
 
-      // Clean comment indicators and split script into individual query statements
-      const queries = schemaSql
+      // Senior Engineer Fix: Strip comments (both single-line '--' and multi-line '/* */') 
+      // BEFORE splitting queries by semicolons. This prevents queries starting with comments from being ignored.
+      const cleanSql = schemaSql
+        .replace(/--.*$/gm, '') // Remove single line SQL comments
+        .replace(/\/\*[\s\S]*?\*\//g, ''); // Remove block comments
+
+      // Split script into individual query statements
+      const queries = cleanSql
         .split(';')
         .map(q => q.trim())
-        .filter(q => q.length > 0 && !q.startsWith('--') && !q.startsWith('CREATE DATABASE') && !q.startsWith('USE'));
+        .filter(q => q.length > 0 && !q.toUpperCase().startsWith('CREATE DATABASE') && !q.toUpperCase().startsWith('USE'));
 
       for (const query of queries) {
         await connection.query(query);

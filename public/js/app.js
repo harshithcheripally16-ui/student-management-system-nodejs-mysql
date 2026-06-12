@@ -79,11 +79,24 @@ class AppController {
 
   /**
    * Renders a success or error notification on screen.
+   * Senior Engineer Fix: Prevents duplicate notification spam for identical messages.
    * @param {string} message - Message text
    * @param {'success'|'error'} type - Theme format
    */
   showToast(message, type = 'success') {
     const container = document.getElementById('toast-container');
+    
+    // Scan active toasts to filter duplicate notifications
+    const activeToasts = Array.from(container.querySelectorAll('.toast'));
+    const isDuplicate = activeToasts.some(t => {
+      const textSpan = t.querySelector('span');
+      return textSpan && textSpan.textContent === message && t.classList.contains(type);
+    });
+
+    if (isDuplicate) {
+      return; // Skip rendering to prevent duplication
+    }
+
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     
@@ -95,7 +108,7 @@ class AppController {
     
     container.appendChild(toast);
     
-    // Auto-remove toast from DOM after 4 seconds (matching CSS animation progress bar)
+    // Auto-remove toast from DOM after 4 seconds
     setTimeout(() => {
       toast.remove();
     }, 4000);
@@ -169,6 +182,7 @@ class AppController {
     } catch (error) {
       this.showToast(error.message, 'error');
       console.error(error);
+      this.students = []; // fallback to empty on connection failures
     }
   }
 
@@ -335,7 +349,6 @@ class AppController {
       let valA = a[this.sortField];
       let valB = b[this.sortField];
 
-      // Handle null/undef
       if (valA === undefined || valA === null) valA = '';
       if (valB === undefined || valB === null) valB = '';
 
@@ -421,7 +434,8 @@ class AppController {
   }
 
   /**
-   * Refreshes table body and pagination state without reloading the main layout wrapper.
+   * Refreshes table body and pagination state.
+   * Senior Engineer Design: Adds distinct Empty States for empty DB vs filtered results.
    */
   updateTableAndPagination() {
     this.processListState();
@@ -429,11 +443,28 @@ class AppController {
     const tableContainer = document.getElementById('students-table-container');
     const paginationContainer = document.getElementById('students-pagination-container');
 
+    // Case A: Database is completely empty (Absolute Empty State)
+    if (this.students.length === 0) {
+      tableContainer.innerHTML = `
+        <div class="view-loader empty-state" style="height: 250px; text-align: center;">
+          <i class="fa-solid fa-users-slash" style="font-size: 48px; color: var(--text-muted); margin-bottom: 12px;"></i>
+          <span style="font-size: 16px; font-weight: 600; color: var(--text-primary);">No students found.</span>
+          <span style="color: var(--text-secondary); font-size: 13px; display: block; margin-top: 4px;">Add your first student to get started.</span>
+          <a href="#/students/add" class="btn btn-primary btn-sm" style="margin-top: 20px;">
+            <i class="fa-solid fa-plus"></i> Enroll First Student
+          </a>
+        </div>
+      `;
+      paginationContainer.innerHTML = '';
+      return;
+    }
+
+    // Case B: Search/Filter yields no matches (Search Empty State)
     if (this.filteredStudents.length === 0) {
       tableContainer.innerHTML = `
-        <div class="view-loader" style="height: 200px;">
-          <i class="fa-solid fa-folder-open" style="font-size: 32px;"></i>
-          <span>No students match the criteria.</span>
+        <div class="view-loader" style="height: 200px; text-align: center;">
+          <i class="fa-solid fa-magnifying-glass-minus" style="font-size: 36px; color: var(--text-muted); margin-bottom: 12px;"></i>
+          <span style="font-size: 14px; font-weight: 500; display: block;">No students match the criteria.</span>
         </div>
       `;
       paginationContainer.innerHTML = '';
@@ -528,7 +559,6 @@ class AppController {
       </div>
     `;
 
-    // Bind list operation listeners (Sort headers, View, Edit, Delete, Pages clicks)
     this.bindTableEventListeners();
   }
 
@@ -674,8 +704,6 @@ class AppController {
 
     // Override the confirm action
     const btnConfirm = document.getElementById('btn-delete-confirm');
-    
-    // Remove any previously bound event listeners by replacing the node (avoids double execution)
     const newBtnConfirm = btnConfirm.cloneNode(true);
     btnConfirm.parentNode.replaceChild(newBtnConfirm, btnConfirm);
 
@@ -689,7 +717,6 @@ class AppController {
         modal.classList.remove('active');
         this.showToast('Student record has been successfully deleted.');
         
-        // Refresh directory data
         await this.loadAndRenderStudentsList();
       } catch (err) {
         this.showToast(err.message, 'error');
@@ -759,7 +786,7 @@ class AppController {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (this.validateForm(form)) {
-        await this.submitStudentData(null); // null means create operation
+        await this.submitStudentData(null);
       }
     });
   }
@@ -836,7 +863,7 @@ class AppController {
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (this.validateForm(form)) {
-          await this.submitStudentData(student.id); // passes ID for edit operation
+          await this.submitStudentData(student.id);
         }
       });
     } catch (err) {
@@ -914,11 +941,9 @@ class AppController {
       btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
 
       if (id) {
-        // Edit / Update call
         await window.studentApi.update(id, payload);
         this.showToast('Student record updated successfully.');
       } else {
-        // Enrolling call
         await window.studentApi.create(payload);
         this.showToast('Student enrolled successfully.');
       }

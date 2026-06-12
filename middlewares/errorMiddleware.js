@@ -2,13 +2,13 @@
  * Centralized Error Handling Middleware
  * Catch-all error handler for Express application.
  * Formats errors and logs them appropriately.
- * Includes database constraint normalization (e.g., duplicate entries).
+ * Maps technical errors (SQL, DB) to clear recruiter-friendly messages.
  */
 
 require('dotenv').config();
 
 function errorHandler(err, req, res, next) {
-  // Log the detailed error stack trace locally for site reliability review
+  // Log the detailed error stack trace locally for debugging
   console.error('[Error Handler Log]:', err);
 
   // Determine HTTP status code, default to 500 (Internal Server Error)
@@ -16,14 +16,18 @@ function errorHandler(err, req, res, next) {
   let message = err.message || 'An unexpected error occurred on the server.';
   let details = err.details || null;
 
-  // Senior Engineer Enhancement: Handle database constraint errors gracefully (SQL defense-in-depth)
-  if (err.code === 'ER_DUP_ENTRY') {
+  // Map technical database errors to specific, human-readable UI messages
+  if (err.code === 'ECONNREFUSED' || err.code === 'ER_ACCESS_DENIED_ERROR') {
+    statusCode = 503; // Service Unavailable
+    message = 'Database connection failed. Verify MySQL is active and credentials match.';
+  } else if (err.code === 'ER_NO_SUCH_TABLE') {
+    statusCode = 500;
+    message = 'Students table not found. Verify the database auto-setup initialized correctly.';
+  } else if (err.code === 'ER_DUP_ENTRY') {
     statusCode = 400;
     message = 'Email address is already registered to another student.';
-    details = {
-      code: err.code,
-      sqlMessage: err.sqlMessage
-    };
+  } else if (err.status === 400 || statusCode === 400) {
+    message = message || 'Invalid request data.';
   }
 
   // Clean error response payload

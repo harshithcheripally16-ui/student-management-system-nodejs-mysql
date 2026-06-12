@@ -1,7 +1,7 @@
 /**
  * Academix Student Portal API Consumer
  * Wraps native fetch calls inside a clean, promise-based client.
- * Standardizes error interceptions and validation message Extractions.
+ * Standardizes error interceptions and validation message extractions.
  */
 
 class StudentAPI {
@@ -23,10 +23,11 @@ class StudentAPI {
     }
 
     if (!response.ok) {
-      // Create a descriptive error object
-      const error = new Error(payload.message || 'Server operation failed.');
+      // Extract custom error messages returned by Express errorMiddleware
+      const errMsg = (payload.error && payload.error.message) || payload.message || 'Server operation failed.';
+      const error = new Error(errMsg);
       error.status = response.status;
-      error.errors = payload.errors || null; // express-validator structures
+      error.errors = payload.errors || null; // validation checks
       throw error;
     }
 
@@ -34,12 +35,30 @@ class StudentAPI {
   }
 
   /**
+   * Universal request helper that wraps fetch and maps network down exceptions
+   * @param {string} url - Target URL path
+   * @param {Object} options - Fetch options
+   * @private
+   */
+  async _request(url, options = {}) {
+    try {
+      const res = await fetch(`${this.baseUrl}${url}`, options);
+      return await this._handleResponse(res);
+    } catch (err) {
+      // If error is a fetch failure (e.g. server is down/offline)
+      if (err.message === 'Failed to fetch' || (err instanceof TypeError && err.message.toLowerCase().includes('fetch'))) {
+        throw new Error('Server unavailable. Please check if the backend service is running.');
+      }
+      throw err;
+    }
+  }
+
+  /**
    * Fetch all student records.
    * @returns {Promise<Object>} API response with list and count
    */
   async getAll() {
-    const res = await fetch(`${this.baseUrl}/students`);
-    return this._handleResponse(res);
+    return this._request('/students');
   }
 
   /**
@@ -48,8 +67,7 @@ class StudentAPI {
    * @returns {Promise<Object>} API response with student record
    */
   async getById(id) {
-    const res = await fetch(`${this.baseUrl}/students/${id}`);
-    return this._handleResponse(res);
+    return this._request(`/students/${id}`);
   }
 
   /**
@@ -58,14 +76,13 @@ class StudentAPI {
    * @returns {Promise<Object>} API response with created record
    */
   async create(studentData) {
-    const res = await fetch(`${this.baseUrl}/students`, {
+    return this._request('/students', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(studentData)
     });
-    return this._handleResponse(res);
   }
 
   /**
@@ -75,14 +92,13 @@ class StudentAPI {
    * @returns {Promise<Object>} API response with updated record
    */
   async update(id, studentData) {
-    const res = await fetch(`${this.baseUrl}/students/${id}`, {
+    return this._request(`/students/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(studentData)
     });
-    return this._handleResponse(res);
   }
 
   /**
@@ -91,10 +107,9 @@ class StudentAPI {
    * @returns {Promise<Object>} API response with status message
    */
   async delete(id) {
-    const res = await fetch(`${this.baseUrl}/students/${id}`, {
+    return this._request(`/students/${id}`, {
       method: 'DELETE'
     });
-    return this._handleResponse(res);
   }
 }
 
