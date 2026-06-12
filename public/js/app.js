@@ -1,7 +1,7 @@
 /**
  * Academix Student Portal Frontend Engine
- * Implements a lightweight client-side Router, View Renderers, State Management,
- * Form Validations, Modal overlays, and Toast Notifications.
+ * Implements client-side Hash Router, SaaS Landing layout, Dashboard Analytics,
+ * Profile Card Grids, Slide-Out details Drawer, GSAP transitions, and Chart.js.
  */
 
 class AppController {
@@ -11,43 +11,21 @@ class AppController {
     this.searchQuery = '';
     this.departmentFilter = '';
     this.sortField = 'created_at';
-    this.sortOrder = 'desc';    // 'asc' or 'desc'
+    this.sortOrder = 'desc';
     
     // Pagination state
     this.currentPage = 1;
-    this.itemsPerPage = 10;
+    this.itemsPerPage = 8; // 8 cards per page fits grid layout perfectly
     
-    // Cached DOM elements
-    this.contentArea = document.getElementById('content-area');
-    this.pageTitle = document.getElementById('page-title');
+    // Cached DOM targets
+    this.viewTarget = document.getElementById('view-target');
     
-    // Bind event handlers
-    this.initSidebar();
+    // Active chart instances
+    this.growthChartInstance = null;
+    this.deptChartInstance = null;
+    
+    this.initDrawer();
     this.initModals();
-  }
-
-  /**
-   * Initialize general UI listeners (Sidebar toggles and click highlights).
-   */
-  initSidebar() {
-    const sidebarToggle = document.getElementById('sidebar-toggle');
-    const sidebar = document.getElementById('sidebar');
-    
-    if (sidebarToggle && sidebar) {
-      sidebarToggle.addEventListener('click', () => {
-        sidebar.classList.toggle('active');
-      });
-    }
-
-    // Close sidebar on menu clicks (mobile experience)
-    const menuItems = document.querySelectorAll('.menu-item');
-    menuItems.forEach(item => {
-      item.addEventListener('click', () => {
-        if (sidebar && window.innerWidth <= 768) {
-          sidebar.classList.remove('active');
-        }
-      });
-    });
   }
 
   /**
@@ -56,15 +34,11 @@ class AppController {
   initModals() {
     // Delete Confirmation cancel
     const btnDeleteCancel = document.getElementById('btn-delete-cancel');
-    btnDeleteCancel.addEventListener('click', () => {
-      document.getElementById('delete-modal').classList.remove('active');
-    });
-
-    // Details close
-    const btnDetailsClose = document.getElementById('btn-details-close');
-    btnDetailsClose.addEventListener('click', () => {
-      document.getElementById('details-modal').classList.remove('active');
-    });
+    if (btnDeleteCancel) {
+      btnDeleteCancel.addEventListener('click', () => {
+        document.getElementById('delete-modal').classList.remove('active');
+      });
+    }
 
     // Close modals on clicking overlay background
     const overlays = document.querySelectorAll('.modal-overlay');
@@ -78,24 +52,66 @@ class AppController {
   }
 
   /**
-   * Renders a success or error notification on screen.
-   * Senior Engineer Fix: Prevents duplicate notification spam for identical messages.
+   * Bind event handlers for Notion-Style Details Drawer.
+   */
+  initDrawer() {
+    const btnDrawerClose = document.getElementById('btn-drawer-close');
+    const drawerOverlay = document.getElementById('drawer-overlay');
+    
+    if (btnDrawerClose) {
+      btnDrawerClose.addEventListener('click', () => this.closeDrawer());
+    }
+    
+    if (drawerOverlay) {
+      drawerOverlay.addEventListener('click', () => this.closeDrawer());
+    }
+  }
+
+  /**
+   * Opens details drawer using custom sliding drawer animation states.
+   */
+  openDrawer() {
+    const drawer = document.getElementById('details-drawer');
+    const overlay = document.getElementById('drawer-overlay');
+    
+    overlay.classList.add('active');
+    drawer.classList.add('active');
+    
+    // GSAP micro-animation for drawer contents
+    gsap.from(".drawer-profile-avatar, .drawer-profile-name, .drawer-info-row, .drawer-actions-box", {
+      opacity: 0,
+      x: 30,
+      duration: 0.4,
+      stagger: 0.05,
+      ease: "power2.out",
+      delay: 0.1
+    });
+  }
+
+  /**
+   * Closes details drawer.
+   */
+  closeDrawer() {
+    document.getElementById('details-drawer').classList.remove('active');
+    document.getElementById('drawer-overlay').classList.remove('active');
+  }
+
+  /**
+   * Renders success or error notifications.
+   * Prevents duplicates by scanning existing toast text content.
    * @param {string} message - Message text
    * @param {'success'|'error'} type - Theme format
    */
   showToast(message, type = 'success') {
     const container = document.getElementById('toast-container');
     
-    // Scan active toasts to filter duplicate notifications
     const activeToasts = Array.from(container.querySelectorAll('.toast'));
     const isDuplicate = activeToasts.some(t => {
       const textSpan = t.querySelector('span');
       return textSpan && textSpan.textContent === message && t.classList.contains(type);
     });
 
-    if (isDuplicate) {
-      return; // Skip rendering to prevent duplication
-    }
+    if (isDuplicate) return;
 
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
@@ -108,72 +124,20 @@ class AppController {
     
     container.appendChild(toast);
     
-    // Auto-remove toast from DOM after 4 seconds
+    // Auto remove
     setTimeout(() => {
-      toast.remove();
-    }, 4000);
+      // Animate out with GSAP before removing
+      gsap.to(toast, {
+        x: 100,
+        opacity: 0,
+        duration: 0.3,
+        onComplete: () => toast.remove()
+      });
+    }, 3500);
   }
 
   /**
-   * Updates sidebar links to highlight the currently active path.
-   * @param {string} route - Active hash route
-   */
-  updateSidebarActiveItem(route) {
-    const menuItems = document.querySelectorAll('.menu-item');
-    menuItems.forEach(item => item.classList.remove('active'));
-
-    if (route.startsWith('#/dashboard') || route === '') {
-      document.getElementById('nav-dashboard').classList.add('active');
-    } else if (route.startsWith('#/students/add')) {
-      document.getElementById('nav-add-student').classList.add('active');
-    } else if (route.startsWith('#/students')) {
-      document.getElementById('nav-students').classList.add('active');
-    }
-  }
-
-  /**
-   * Router Dispatcher
-   * Maps current URL hash to respective view renderers.
-   */
-  async handleRoute() {
-    const hash = window.location.hash || '#/dashboard';
-    this.updateSidebarActiveItem(hash);
-
-    // Dynamic router matches
-    if (hash === '#/dashboard') {
-      this.pageTitle.textContent = 'Dashboard';
-      await this.loadAndRenderDashboard();
-    } else if (hash === '#/students') {
-      this.pageTitle.textContent = 'Students Portal';
-      await this.loadAndRenderStudentsList();
-    } else if (hash === '#/students/add') {
-      this.pageTitle.textContent = 'New Enrollment';
-      this.renderAddStudentForm();
-    } else if (hash.startsWith('#/students/edit/')) {
-      this.pageTitle.textContent = 'Modify Student Profile';
-      const parts = hash.split('/');
-      const id = parseInt(parts[parts.length - 1], 10);
-      await this.loadAndRenderEditStudentForm(id);
-    } else {
-      // Fallback
-      window.location.hash = '#/dashboard';
-    }
-  }
-
-  /**
-   * Helper loader spinner.
-   */
-  showLoader() {
-    this.contentArea.innerHTML = `
-      <div class="view-loader">
-        <i class="fa-solid fa-circle-notch fa-spin"></i>
-        <span>Loading database records...</span>
-      </div>
-    `;
-  }
-
-  /**
-   * Fetches latest database records to local cache state.
+   * Refreshes cache connection database.
    */
   async refreshCache() {
     try {
@@ -182,19 +146,268 @@ class AppController {
     } catch (error) {
       this.showToast(error.message, 'error');
       console.error(error);
-      this.students = []; // fallback to empty on connection failures
+      this.students = [];
+    }
+  }
+
+  /**
+   * Router Dispatcher
+   * Renders Landing experience OR wraps inside Portal layouts based on URL hash routing.
+   */
+  async handleRoute() {
+    this.closeDrawer();
+    const hash = window.location.hash || '#/landing';
+
+    // 1. SaaS Landing Page layout
+    if (hash === '#/landing' || hash === '') {
+      await this.renderLandingPage();
+      return;
+    }
+
+    // 2. Portal Workspace layouts (Dashboard, List, Form enrollments)
+    await this.renderPortalWrapper(hash);
+  }
+
+  /* ==========================================================================
+     SaaS Landing Page Renderer
+     ========================================================================== */
+
+  async renderLandingPage() {
+    this.viewTarget.innerHTML = `
+      <div class="landing-wrapper">
+        <!-- Minimal floating Navbar -->
+        <header class="landing-nav">
+          <div class="brand">
+            <i class="fa-solid fa-graduation-cap"></i>
+            <span class="brand-text">Academix</span>
+          </div>
+          <a href="#/dashboard" class="btn btn-primary btn-sm">Launch Portal</a>
+        </header>
+
+        <!-- Hero section -->
+        <section class="landing-hero">
+          <div class="hero-tag">
+            <i class="fa-solid fa-bolt"></i> Version 1.2.0 Released
+          </div>
+          <h1 class="hero-title">
+            The Next-Generation<br><span>Student Registry Portal.</span>
+          </h1>
+          <p class="hero-subtitle">
+            A secure, portfolio-grade management platform structured with clean MVC architecture, parameterized MySQL interfaces, robust validator guards, and elegant glassmorphic dashboard analytics.
+          </p>
+          <div class="hero-ctas">
+            <a href="#/dashboard" class="btn btn-glow">Launch Workspace</a>
+            <a href="#/students" class="btn btn-secondary">Explore Directory</a>
+          </div>
+        </section>
+
+        <!-- Live metrics counter grid -->
+        <section class="landing-stats" id="landing-stats-container">
+          <div class="landing-stat-card">
+            <div class="landing-stat-number" id="count-uptime">99.9%</div>
+            <div class="landing-stat-label">System Uptime</div>
+          </div>
+          <div class="landing-stat-card">
+            <div class="landing-stat-number" id="count-latency">&lt; 1.2s</div>
+            <div class="landing-stat-label">Database Response</div>
+          </div>
+          <div class="landing-stat-card">
+            <div class="landing-stat-number" id="count-pooling">Active</div>
+            <div class="landing-stat-label">Connection Pooling</div>
+          </div>
+        </section>
+
+        <!-- Features grid -->
+        <section class="landing-features">
+          <div class="section-label">Capabilities</div>
+          <h2 class="section-title">Designed for modern administration.</h2>
+          <div class="feature-grid">
+            <div class="feature-card">
+              <div class="feature-card-icon"><i class="fa-solid fa-shield-halved"></i></div>
+              <h3 class="feature-card-title">Prepared Statement SQL Bindings</h3>
+              <p class="feature-card-desc">Complete mitigation against SQL Injection vectors using parameter-binding query protocols.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-card-icon"><i class="fa-solid fa-arrows-rotate"></i></div>
+              <h3 class="feature-card-title">Graceful Database Lifecycles</h3>
+              <p class="feature-card-desc">Active process shutdown handlers close database connection pools safely on SIGINT/SIGTERM signals.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-card-icon"><i class="fa-solid fa-diagram-project"></i></div>
+              <h3 class="feature-card-title">Structured MVC Code Pattern</h3>
+              <p class="feature-card-desc">Isolates route schemes, request validator schemas, database models, and controller routers cleanly.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    `;
+
+    // GSAP Landing Page load animation
+    gsap.from(".landing-nav", { opacity: 0, y: -20, duration: 0.6, ease: "power2.out" });
+    gsap.from(".hero-tag, .hero-title, .hero-subtitle, .hero-ctas", {
+      opacity: 0,
+      y: 40,
+      duration: 0.8,
+      stagger: 0.15,
+      ease: "power3.out"
+    });
+    gsap.from(".landing-stat-card", {
+      opacity: 0,
+      scale: 0.95,
+      y: 20,
+      duration: 0.6,
+      stagger: 0.1,
+      ease: "power2.out",
+      delay: 0.6
+    });
+  }
+
+  /* ==========================================================================
+     Portal Workspace Wrapper Setup
+     ========================================================================== */
+
+  async renderPortalWrapper(activeHash) {
+    // Check if portal shell is already loaded to avoid redrawing sidebar/header structure
+    let sidebar = document.getElementById('sidebar');
+    if (!sidebar) {
+      this.viewTarget.innerHTML = `
+        <div class="portal-wrapper">
+          <!-- Translucent left docked floating sidebar -->
+          <aside class="portal-sidebar" id="sidebar">
+            <div class="portal-sidebar-brand">
+              <i class="fa-solid fa-graduation-cap" style="font-size: 20px; color: var(--primary-color);"></i>
+              <span>Academix</span>
+            </div>
+            
+            <nav class="portal-sidebar-menu">
+              <a href="#/dashboard" class="portal-menu-item" id="nav-dashboard">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>Dashboard</span>
+              </a>
+              <a href="#/students" class="portal-menu-item" id="nav-students">
+                <i class="fa-solid fa-users"></i>
+                <span>Students</span>
+              </a>
+              <a href="#/students/add" class="portal-menu-item" id="nav-add-student">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Enroll Student</span>
+              </a>
+            </nav>
+            
+            <div class="portal-sidebar-footer">
+              <div class="status">
+                <span class="status-indicator"></span>
+                <span>Active Pool</span>
+              </div>
+              <div class="version">v1.2.0</div>
+            </div>
+          </aside>
+
+          <!-- Main portal area -->
+          <main class="portal-main">
+            <header class="portal-header">
+              <button class="portal-sidebar-toggle" id="sidebar-toggle">
+                <i class="fa-solid fa-bars"></i>
+              </button>
+              <div class="portal-header-title">
+                <h1 id="portal-title">Dashboard</h1>
+              </div>
+              <div class="portal-header-user">
+                <div class="portal-user-avatar">AD</div>
+                <div class="portal-user-details">
+                  <span class="portal-user-name">Delivery Admin</span>
+                  <span class="portal-user-role">System Administrator</span>
+                </div>
+              </div>
+            </header>
+
+            <div class="portal-content" id="portal-content-area">
+              <!-- Sub-views are dynamically injected here -->
+            </div>
+          </main>
+        </div>
+      `;
+
+      // Re-bind sidebar togglers
+      const sidebarToggle = document.getElementById('sidebar-toggle');
+      sidebar = document.getElementById('sidebar');
+      sidebarToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('active');
+      });
+
+      // Highlight active sidebar item
+      this.updateSidebarActiveItem(activeHash);
+
+      // GSAP portal shell enter animation
+      gsap.from("#sidebar", { opacity: 0, x: -30, duration: 0.6, ease: "power2.out" });
+      gsap.from(".portal-main", { opacity: 0, x: 30, duration: 0.6, ease: "power2.out" });
+    }
+
+    // Dynamically inject target view
+    const portalContent = document.getElementById('portal-content-area');
+    const portalTitle = document.getElementById('portal-title');
+    this.updateSidebarActiveItem(activeHash);
+
+    // Destroy active charts to prevent memory leak
+    if (this.growthChartInstance) this.growthChartInstance.destroy();
+    if (this.deptChartInstance) this.deptChartInstance.destroy();
+
+    // Loader
+    portalContent.innerHTML = `
+      <div class="view-loader">
+        <i class="fa-solid fa-circle-notch fa-spin"></i>
+        <span>Synchronizing data...</span>
+      </div>
+    `;
+
+    if (activeHash === '#/dashboard') {
+      portalTitle.textContent = 'Dashboard Analytics';
+      await this.loadAndRenderDashboard(portalContent);
+    } else if (activeHash === '#/students') {
+      portalTitle.textContent = 'Student Directory';
+      await this.loadAndRenderStudentsGrid(portalContent);
+    } else if (activeHash === '#/students/add') {
+      portalTitle.textContent = 'Student Enrollment';
+      this.renderAddStudentForm(portalContent);
+    } else if (activeHash.startsWith('#/students/edit/')) {
+      portalTitle.textContent = 'Modify Profile';
+      const parts = activeHash.split('/');
+      const id = parseInt(parts[parts.length - 1], 10);
+      await this.loadAndRenderEditStudentForm(portalContent, id);
+    }
+  }
+
+  /**
+   * Highlights active menu items inside sidebar container.
+   * @param {string} hash - Route string
+   */
+  updateSidebarActiveItem(hash) {
+    const menuItems = document.querySelectorAll('.portal-menu-item');
+    menuItems.forEach(item => item.classList.remove('active'));
+
+    const dashboardItem = document.getElementById('nav-dashboard');
+    const studentsItem = document.getElementById('nav-students');
+    const addItem = document.getElementById('nav-add-student');
+
+    if (dashboardItem && studentsItem && addItem) {
+      if (hash === '#/dashboard') {
+        dashboardItem.classList.add('active');
+      } else if (hash === '#/students') {
+        studentsItem.classList.add('active');
+      } else if (hash === '#/students/add') {
+        addItem.classList.add('active');
+      }
     }
   }
 
   /* ==========================================================================
-     View Renderers: Dashboard
+     Portal View: Dashboard Analytics Rendering
      ========================================================================== */
 
-  async loadAndRenderDashboard() {
-    this.showLoader();
+  async loadAndRenderDashboard(target) {
     await this.refreshCache();
 
-    // 1. Calculate dashboard metrics
+    // Stats calculations
     const totalCount = this.students.length;
     const csCount = this.students.filter(s => 
       s.department.toLowerCase().includes('computer science') || 
@@ -204,329 +417,322 @@ class AppController {
     ).length;
     const otherCount = totalCount - csCount;
 
-    // 2. Fetch top 5 recently added students (Sorted by created_at desc)
-    const recentStudents = [...this.students]
-      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-      .slice(0, 5);
-
-    // 3. Render view HTML structure
-    let recentRowsHtml = '';
-    if (recentStudents.length === 0) {
-      recentRowsHtml = `
-        <div class="view-loader" style="height: 150px;">
-          <i class="fa-solid fa-folder-open" style="font-size: 24px;"></i>
-          <span>No students enrolled in the system yet.</span>
-        </div>
-      `;
-    } else {
-      recentRowsHtml = recentStudents.map(student => {
-        // Initial Avatar name abbreviation
-        const initials = student.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-        const formattedDate = new Date(student.created_at).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric'
-        });
-        return `
-          <div class="activity-item">
-            <div class="activity-info">
-              <div class="activity-avatar">${initials}</div>
-              <div class="activity-text">
-                <span class="activity-name">${student.name}</span>
-                <span class="activity-dept">${student.department}</span>
-              </div>
-            </div>
-            <div class="activity-meta">
-              <div><span class="activity-year">Year ${student.year}</span></div>
-              <span class="activity-time">${formattedDate}</span>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    this.contentArea.innerHTML = `
-      <div class="dashboard-stats-grid">
-        <div class="glass-card stat-card interactive">
-          <div class="stat-icon total">
+    target.innerHTML = `
+      <!-- Row 1: KPI Grid -->
+      <div class="metrics-grid">
+        <div class="glassmorphic-card kpi-card">
+          <div class="kpi-header">
+            <span>TOTAL REGISTRATIONS</span>
             <i class="fa-solid fa-graduation-cap"></i>
           </div>
-          <div class="stat-details">
-            <span class="stat-label">Total Enrollment</span>
-            <span class="stat-value">${totalCount}</span>
-          </div>
+          <span class="kpi-value">${totalCount}</span>
+          <div class="kpi-footer">Active student database rows</div>
         </div>
-        <div class="glass-card stat-card interactive">
-          <div class="stat-icon cs">
+        <div class="glassmorphic-card kpi-card">
+          <div class="kpi-header">
+            <span>CS & IT SPECIALISTS</span>
             <i class="fa-solid fa-laptop-code"></i>
           </div>
-          <div class="stat-details">
-            <span class="stat-label">CS & IT Majors</span>
-            <span class="stat-value">${csCount}</span>
-          </div>
+          <span class="kpi-value">${csCount}</span>
+          <div class="kpi-footer"><span>${totalCount > 0 ? Math.round((csCount/totalCount)*100) : 0}%</span> of total database</div>
         </div>
-        <div class="glass-card stat-card interactive">
-          <div class="stat-icon other">
+        <div class="glassmorphic-card kpi-card">
+          <div class="kpi-header">
+            <span>OTHER MAJORS</span>
             <i class="fa-solid fa-gears"></i>
           </div>
-          <div class="stat-details">
-            <span class="stat-label">Other Majors</span>
-            <span class="stat-value">${otherCount}</span>
-          </div>
+          <span class="kpi-value">${otherCount}</span>
+          <div class="kpi-footer">Engineering, Science, Arts</div>
         </div>
       </div>
 
-      <div class="dashboard-content-layout">
-        <!-- Recently Added Section -->
-        <div class="glass-card">
-          <div class="dashboard-section-header">
-            <h2>Recently Enrolled Students</h2>
-            <a href="#/students" class="btn btn-secondary btn-sm">View All</a>
+      <!-- Row 2: Charts Grid -->
+      <div class="dashboard-visuals-grid">
+        <div class="glassmorphic-card">
+          <div class="chart-card-header">
+            <h2>Enrollment Growth Trend</h2>
           </div>
-          <div class="recent-activities-list">
-            ${recentRowsHtml}
+          <div class="chart-container" style="height: 250px;">
+            <canvas id="growthLineChart"></canvas>
           </div>
         </div>
-
-        <!-- Quick Actions Panel -->
-        <div class="glass-card">
-          <div class="dashboard-section-header">
-            <h2>Quick Actions</h2>
+        
+        <div class="glassmorphic-card">
+          <div class="chart-card-header">
+            <h2>Department Allocation</h2>
           </div>
-          <div class="quick-actions-box">
-            <a href="#/students/add" class="action-card">
-              <div class="action-card-icon">
-                <i class="fa-solid fa-user-plus"></i>
-              </div>
-              <div class="action-card-text">
-                <span class="action-card-title">Enroll Student</span>
-                <span class="action-card-desc">Add a new record to the DB</span>
-              </div>
-            </a>
-            <a href="#/students" class="action-card">
-              <div class="action-card-icon">
-                <i class="fa-solid fa-table-list"></i>
-              </div>
-              <div class="action-card-text">
-                <span class="action-card-title">Search Directory</span>
-                <span class="action-card-desc">Search, sort, edit records</span>
-              </div>
-            </a>
+          <div class="chart-container" style="height: 250px; display: flex; align-items: center; justify-content: center;">
+            <canvas id="deptDoughnutChart" style="max-height: 220px; max-width: 220px;"></canvas>
           </div>
         </div>
       </div>
     `;
-  }
 
-  /* ==========================================================================
-     View Renderers: Students List & Operations
-     ========================================================================== */
+    // GSAP load stats
+    gsap.from(".kpi-card", { opacity: 0, y: 15, duration: 0.4, stagger: 0.1, ease: "power2.out" });
+    gsap.from(".dashboard-visuals-grid .glassmorphic-card", { opacity: 0, y: 20, duration: 0.5, stagger: 0.15, ease: "power2.out", delay: 0.2 });
 
-  async loadAndRenderStudentsList() {
-    this.showLoader();
-    await this.refreshCache();
-    this.renderListUI();
+    // Initialize charts
+    this.initDashboardCharts();
   }
 
   /**
-   * Applies local search filters, sorts fields, and splits pages.
+   * Initializes Line and Doughnut metrics using Chart.js.
    */
-  processListState() {
-    // 1. Apply Search and Filters
-    this.filteredStudents = this.students.filter(student => {
-      const matchQuery = 
-        student.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-        student.email.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-        student.department.toLowerCase().includes(this.searchQuery.toLowerCase());
-      
-      const matchDept = !this.departmentFilter || student.department === this.departmentFilter;
+  initDashboardCharts() {
+    const lineCtx = document.getElementById('growthLineChart');
+    const doughnutCtx = document.getElementById('deptDoughnutChart');
 
-      return matchQuery && matchDept;
+    if (!lineCtx || !doughnutCtx) return;
+
+    // 1. Line Chart Data setup: Group enrollment counts by date
+    const dateGroups = {};
+    this.students.forEach(s => {
+      const dateStr = new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      dateGroups[dateStr] = (dateGroups[dateStr] || 0) + 1;
     });
 
-    // 2. Apply Sorting
-    this.filteredStudents.sort((a, b) => {
-      let valA = a[this.sortField];
-      let valB = b[this.sortField];
+    // Sort dates chronologically (using latest as fallback, here we take unique sorted dates)
+    const sortedDates = Object.keys(dateGroups).slice(-7); // Last 7 unique entry dates
+    const growthData = sortedDates.map(date => dateGroups[date]);
 
-      if (valA === undefined || valA === null) valA = '';
-      if (valB === undefined || valB === null) valB = '';
+    // Gradient fills
+    const lineGradient = lineCtx.getContext('2d').createLinearGradient(0, 0, 0, 250);
+    lineGradient.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
+    lineGradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
 
-      if (typeof valA === 'string') {
-        return this.sortOrder === 'asc' 
-          ? valA.localeCompare(valB)
-          : valB.localeCompare(valA);
-      } else {
-        return this.sortOrder === 'asc'
-          ? valA - valB
-          : valB - valA;
+    this.growthChartInstance = new Chart(lineCtx, {
+      type: 'line',
+      data: {
+        labels: sortedDates.length > 0 ? sortedDates : ['None'],
+        datasets: [{
+          label: 'Students Enrolled',
+          data: growthData.length > 0 ? growthData : [0],
+          borderColor: '#6366f1',
+          borderWidth: 3,
+          backgroundColor: lineGradient,
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: '#8b5cf6',
+          pointBorderColor: '#ffffff',
+          pointRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          x: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#9ca3af' } },
+          y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#9ca3af', stepSize: 1 } }
+        }
       }
     });
 
-    // Reset page if out of bounds
-    const maxPage = Math.ceil(this.filteredStudents.length / this.itemsPerPage) || 1;
-    if (this.currentPage > maxPage) {
-      this.currentPage = maxPage;
-    }
+    // 2. Doughnut Chart Data setup: Group by department allocations
+    const deptAllocations = {};
+    this.students.forEach(s => {
+      deptAllocations[s.department] = (deptAllocations[s.department] || 0) + 1;
+    });
+
+    const deptLabels = Object.keys(deptAllocations);
+    const deptData = deptLabels.map(dept => deptAllocations[dept]);
+
+    this.deptChartInstance = new Chart(doughnutCtx, {
+      type: 'doughnut',
+      data: {
+        labels: deptLabels.length > 0 ? deptLabels : ['Empty'],
+        datasets: [{
+          data: deptData.length > 0 ? deptData : [1],
+          backgroundColor: ['#6366f1', '#a855f7', '#10b981', '#f59e0b', '#3b82f6', '#f43f5e'],
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.1)'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: '#9ca3af', font: { size: 10 } }
+          }
+        },
+        cutout: '65%'
+      }
+    });
   }
 
-  /**
-   * Renders the Students List layout wrapper.
-   */
-  renderListUI() {
-    this.processListState();
+  /* ==========================================================================
+     Portal View: Student Profile Cards Grid
+     ========================================================================== */
 
-    // Get unique departments for the dropdown filter
-    const departments = [...new Set(this.students.map(s => s.department))].sort();
-    const deptOptionsHtml = departments.map(d => 
-      `<option value="${d}" ${this.departmentFilter === d ? 'selected' : ''}>${d}</option>`
-    ).join('');
-
-    this.contentArea.innerHTML = `
-      <div class="glass-card">
-        <!-- List Header Controls -->
-        <div class="list-controls">
-          <div class="search-box-wrapper">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" class="search-input" id="student-search-input" placeholder="Search by name, email, major..." value="${this.searchQuery}">
-          </div>
-          
-          <div class="filter-controls">
-            <select class="select-dropdown" id="filter-dept-select">
-              <option value="">All Departments</option>
-              ${deptOptionsHtml}
-            </select>
-            <a href="#/students/add" class="btn btn-primary">
-              <i class="fa-solid fa-plus"></i> Add Student
-            </a>
-          </div>
+  async loadAndRenderStudentsGrid(target) {
+    this.closeDrawer();
+    await this.refreshCache();
+    
+    // Default list layout structure
+    target.innerHTML = `
+      <div class="search-filter-panel">
+        <!-- Search bar with command center design -->
+        <div class="command-search-wrapper">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" class="command-search-input" id="search-box" placeholder="Search by name, email, major..." value="${this.searchQuery}">
         </div>
 
-        <!-- Dynamic Table Wrapper -->
-        <div class="table-responsive" id="students-table-container">
-          <!-- Table rows injected here -->
+        <!-- Horizontal filter pill list -->
+        <div class="filter-pills-list" id="dept-pills-container">
+          <!-- Dynamic Pills will be loaded here -->
         </div>
+      </div>
 
-        <!-- Pagination Footer -->
-        <div class="table-pagination" id="students-pagination-container">
-          <!-- Pagination injected here -->
-        </div>
+      <!-- Profile Card responsive Grid -->
+      <div class="profile-card-grid" id="grid-container">
+        <!-- Cards are dynamically rendered here -->
+      </div>
+
+      <!-- Pagination Controls -->
+      <div class="grid-pagination" id="grid-pagination-container">
+        <!-- Pagination controls here -->
       </div>
     `;
 
-    // Bind event listeners for input searches
-    const searchInput = document.getElementById('student-search-input');
-    searchInput.addEventListener('input', (e) => {
+    // Bind real-time input search event
+    const searchBox = document.getElementById('search-box');
+    searchBox.addEventListener('input', (e) => {
       this.searchQuery = e.target.value;
-      this.currentPage = 1; // reset page
-      this.updateTableAndPagination();
+      this.currentPage = 1;
+      this.updateGridAndPagination();
     });
 
-    const filterSelect = document.getElementById('filter-dept-select');
-    filterSelect.addEventListener('change', (e) => {
-      this.departmentFilter = e.target.value;
-      this.currentPage = 1; // reset page
-      this.updateTableAndPagination();
-    });
-
-    // Populate actual table rows
-    this.updateTableAndPagination();
+    this.updateGridAndPagination();
   }
 
   /**
-   * Refreshes table body and pagination state.
-   * Senior Engineer Design: Adds distinct Empty States for empty DB vs filtered results.
+   * Refreshes list state: populates filter pills, creates cards, and builds pagination tags.
    */
-  updateTableAndPagination() {
+  updateGridAndPagination() {
     this.processListState();
     
-    const tableContainer = document.getElementById('students-table-container');
-    const paginationContainer = document.getElementById('students-pagination-container');
+    const gridContainer = document.getElementById('grid-container');
+    const paginationContainer = document.getElementById('grid-pagination-container');
+    const pillsContainer = document.getElementById('dept-pills-container');
 
-    // Case A: Database is completely empty (Absolute Empty State)
+    // 1. Populate clean department filter pills (Linear style)
+    const departments = [...new Set(this.students.map(s => s.department))].sort();
+    pillsContainer.innerHTML = `
+      <div class="filter-pill ${this.departmentFilter === '' ? 'active' : ''}" data-dept="">All Majors</div>
+      ${departments.map(dept => `
+        <div class="filter-pill ${this.departmentFilter === dept ? 'active' : ''}" data-dept="${dept}">${dept}</div>
+      `).join('')}
+    `;
+
+    // Bind pills clicks
+    const pills = pillsContainer.querySelectorAll('.filter-pill');
+    pills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        this.departmentFilter = pill.getAttribute('data-dept');
+        this.currentPage = 1;
+        this.updateGridAndPagination();
+      });
+    });
+
+    // 2. Evaluate Absolute Empty States vs Filter Empty States
     if (this.students.length === 0) {
-      tableContainer.innerHTML = `
-        <div class="view-loader empty-state" style="height: 250px; text-align: center;">
-          <i class="fa-solid fa-users-slash" style="font-size: 48px; color: var(--text-muted); margin-bottom: 12px;"></i>
-          <span style="font-size: 16px; font-weight: 600; color: var(--text-primary);">No students found.</span>
-          <span style="color: var(--text-secondary); font-size: 13px; display: block; margin-top: 4px;">Add your first student to get started.</span>
-          <a href="#/students/add" class="btn btn-primary btn-sm" style="margin-top: 20px;">
-            <i class="fa-solid fa-plus"></i> Enroll First Student
-          </a>
+      gridContainer.innerHTML = '';
+      paginationContainer.innerHTML = '';
+      document.getElementById('grid-container').className = 'empty-state-wrapper';
+      document.getElementById('grid-container').innerHTML = `
+        <div class="empty-state-screen glassmorphic-card">
+          <i class="fa-solid fa-users-slash"></i>
+          <h2>No students enrolled</h2>
+          <p>Enrolling your first student record will populate the directory database.</p>
+          <a href="#/students/add" class="btn btn-glow btn-sm">Add First Student</a>
         </div>
       `;
-      paginationContainer.innerHTML = '';
       return;
     }
 
-    // Case B: Search/Filter yields no matches (Search Empty State)
     if (this.filteredStudents.length === 0) {
-      tableContainer.innerHTML = `
-        <div class="view-loader" style="height: 200px; text-align: center;">
-          <i class="fa-solid fa-magnifying-glass-minus" style="font-size: 36px; color: var(--text-muted); margin-bottom: 12px;"></i>
-          <span style="font-size: 14px; font-weight: 500; display: block;">No students match the criteria.</span>
+      gridContainer.innerHTML = '';
+      paginationContainer.innerHTML = '';
+      document.getElementById('grid-container').className = 'empty-state-wrapper';
+      document.getElementById('grid-container').innerHTML = `
+        <div class="empty-state-screen glassmorphic-card">
+          <i class="fa-solid fa-magnifying-glass-minus"></i>
+          <h2>No matching profiles</h2>
+          <p>No student details match your query. Try refining your keyword or filter.</p>
         </div>
       `;
-      paginationContainer.innerHTML = '';
       return;
     }
 
-    // Paginate items slice
+    // Set layout class
+    document.getElementById('grid-container').className = 'profile-card-grid';
+
+    // 3. Paginate student lists
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
     const paginatedItems = this.filteredStudents.slice(startIndex, startIndex + this.itemsPerPage);
 
-    // Helper sort icon generator
-    const getSortIcon = (field) => {
-      if (this.sortField !== field) return '<i class="fa-solid fa-sort"></i>';
-      return this.sortOrder === 'asc' ? '<i class="fa-solid fa-sort-up"></i>' : '<i class="fa-solid fa-sort-down"></i>';
-    };
+    // 4. Render Profile cards
+    gridContainer.innerHTML = paginatedItems.map(student => {
+      const initials = student.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+      return `
+        <div class="profile-card glassmorphic-card" data-id="${student.id}">
+          <div class="profile-card-header">
+            <div class="profile-card-avatar">${initials}</div>
+            <div class="profile-card-info">
+              <span class="profile-card-name">${student.name}</span>
+              <span class="profile-card-id">ID: #${student.id}</span>
+            </div>
+          </div>
+          
+          <div class="profile-card-details">
+            <div class="detail-item">
+              <span class="detail-label">Email</span>
+              <span class="detail-value" style="font-size:12px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${student.email}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Major</span>
+              <span class="detail-value">${student.department}</span>
+            </div>
+          </div>
 
-    // Table HTML build
-    tableContainer.innerHTML = `
-      <table class="custom-table">
-        <thead>
-          <tr>
-            <th data-sort="id">ID ${getSortIcon('id')}</th>
-            <th data-sort="name">Name ${getSortIcon('name')}</th>
-            <th data-sort="email">Email ${getSortIcon('email')}</th>
-            <th data-sort="department">Department ${getSortIcon('department')}</th>
-            <th data-sort="year">Year ${getSortIcon('year')}</th>
-            <th style="text-align: right;">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${paginatedItems.map(student => `
-            <tr>
-              <td>#${student.id}</td>
-              <td style="font-weight: 600;">${student.name}</td>
-              <td style="color: var(--text-secondary);">${student.email}</td>
-              <td>${student.department}</td>
-              <td><span class="activity-year">Year ${student.year}</span></td>
-              <td style="text-align: right;">
-                <div class="row-actions" style="justify-content: flex-end;">
-                  <button class="btn-icon view" data-id="${student.id}" title="View Details">
-                    <i class="fa-solid fa-eye"></i>
-                  </button>
-                  <button class="btn-icon edit" data-id="${student.id}" title="Edit Student">
-                    <i class="fa-solid fa-pen-to-square"></i>
-                  </button>
-                  <button class="btn-icon delete" data-id="${student.id}" title="Delete Record">
-                    <i class="fa-solid fa-trash-can"></i>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
+          <div class="profile-card-footer">
+            <span class="profile-badge dept">${student.department.substring(0, 15)}${student.department.length > 15 ? '...' : ''}</span>
+            <span class="profile-badge year">Year ${student.year}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
 
-    // Render pagination controls
+    // GSAP load cards animation
+    gsap.from(".profile-card", {
+      opacity: 0,
+      scale: 0.96,
+      y: 15,
+      duration: 0.4,
+      stagger: 0.05,
+      ease: "power2.out"
+    });
+
+    // Bind card click listener to open the slide drawer
+    const cards = gridContainer.querySelectorAll('.profile-card');
+    cards.forEach(card => {
+      card.addEventListener('click', () => {
+        const id = parseInt(card.getAttribute('data-id'), 10);
+        const student = this.students.find(s => s.id === id);
+        if (student) this.renderStudentDrawer(student);
+      });
+    });
+
+    // 5. Render Pagination controls
     const totalStudents = this.filteredStudents.length;
     const totalPages = Math.ceil(totalStudents / this.itemsPerPage);
     const endIndex = Math.min(startIndex + this.itemsPerPage, totalStudents);
 
-    // Renders active page numbers
     let pagesHtml = '';
     const maxVisiblePages = 5;
     let startPage = Math.max(1, this.currentPage - 2);
@@ -543,50 +749,28 @@ class AppController {
     }
 
     paginationContainer.innerHTML = `
-      <div class="pagination-info">
+      <div class="pagination-info" style="font-size: 13px; color: var(--text-secondary);">
         Showing <strong>${startIndex + 1}</strong> to <strong>${endIndex}</strong> of <strong>${totalStudents}</strong> entries
       </div>
       <div class="pagination-controls">
         <button class="pagination-btn" id="btn-page-prev" ${this.currentPage === 1 ? 'disabled' : ''}>
-          <i class="fa-solid fa-angle-left"></i> Previous
+          <i class="fa-solid fa-angle-left"></i>
         </button>
         <div class="pagination-pages">
           ${pagesHtml}
         </div>
         <button class="pagination-btn" id="btn-page-next" ${this.currentPage === totalPages ? 'disabled' : ''}>
-          Next <i class="fa-solid fa-angle-right"></i>
+          <i class="fa-solid fa-angle-right"></i>
         </button>
       </div>
     `;
 
-    this.bindTableEventListeners();
-  }
-
-  /**
-   * Bind event handlers inside the dynamically generated table DOM layout.
-   */
-  bindTableEventListeners() {
-    // 1. Sorting Headers
-    const headers = this.contentArea.querySelectorAll('.custom-table th[data-sort]');
-    headers.forEach(header => {
-      header.addEventListener('click', () => {
-        const field = header.getAttribute('data-sort');
-        if (this.sortField === field) {
-          this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
-        } else {
-          this.sortField = field;
-          this.sortOrder = 'asc';
-        }
-        this.updateTableAndPagination();
-      });
-    });
-
-    // 2. Pagination Clicks
+    // Bind page buttons click triggers
     const prevBtn = document.getElementById('btn-page-prev');
     if (prevBtn) {
       prevBtn.addEventListener('click', () => {
         this.currentPage--;
-        this.updateTableAndPagination();
+        this.updateGridAndPagination();
       });
     }
 
@@ -594,115 +778,97 @@ class AppController {
     if (nextBtn) {
       nextBtn.addEventListener('click', () => {
         this.currentPage++;
-        this.updateTableAndPagination();
+        this.updateGridAndPagination();
       });
     }
 
-    const pageNums = this.contentArea.querySelectorAll('.page-num');
+    const pageNums = paginationContainer.querySelectorAll('.page-num');
     pageNums.forEach(btn => {
       btn.addEventListener('click', () => {
         this.currentPage = parseInt(btn.getAttribute('data-page'), 10);
-        this.updateTableAndPagination();
-      });
-    });
-
-    // 3. Row Actions (View Details, Edit, Delete)
-    const viewButtons = this.contentArea.querySelectorAll('.btn-icon.view');
-    viewButtons.forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = parseInt(btn.getAttribute('data-id'), 10);
-        const student = this.students.find(s => s.id === id);
-        if (student) this.showStudentDetails(student);
-      });
-    });
-
-    const editButtons = this.contentArea.querySelectorAll('.btn-icon.edit');
-    editButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-id');
-        window.location.hash = `#/students/edit/${id}`;
-      });
-    });
-
-    const deleteButtons = this.contentArea.querySelectorAll('.btn-icon.delete');
-    deleteButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = parseInt(btn.getAttribute('data-id'), 10);
-        const student = this.students.find(s => s.id === id);
-        if (student) this.showDeleteConfirm(student);
+        this.updateGridAndPagination();
       });
     });
   }
 
   /**
-   * Renders the View Student details profile overlay modal.
-   * @param {Object} student - Student record object
+   * Renders details inside the Notion-style Slide-Out Drawer and slide it out.
+   * @param {Object} student - Student record details
    */
-  showStudentDetails(student) {
-    const modalBody = document.getElementById('details-modal-body');
+  renderStudentDrawer(student) {
+    const drawerBody = document.getElementById('drawer-body-content');
     const initials = student.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
     const formattedDate = new Date(student.created_at).toLocaleString('en-US', {
       month: 'long',
       day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric',
-      second: 'numeric'
+      year: 'numeric'
     });
 
-    modalBody.innerHTML = `
-      <div class="details-modal-grid">
-        <div class="details-avatar-circle">${initials}</div>
-        
-        <div class="details-info-table">
-          <div class="details-row">
-            <span class="details-label">Student ID</span>
-            <span class="details-value">#${student.id}</span>
-          </div>
-          <div class="details-row">
-            <span class="details-label">Full Name</span>
-            <span class="details-value">${student.name}</span>
-          </div>
-          <div class="details-row">
-            <span class="details-label">Email Address</span>
-            <span class="details-value">${student.email}</span>
-          </div>
-          <div class="details-row">
-            <span class="details-label">Department / Major</span>
-            <span class="details-value">${student.department}</span>
-          </div>
-          <div class="details-row">
-            <span class="details-label">Academic Year</span>
-            <span class="details-value">Year ${student.year}</span>
-          </div>
-          <div class="details-row">
-            <span class="details-label">Enrolled At</span>
-            <span class="details-value">${formattedDate}</span>
-          </div>
+    drawerBody.innerHTML = `
+      <div class="drawer-profile-summary">
+        <div class="drawer-profile-avatar">${initials}</div>
+        <h3 class="drawer-profile-name">${student.name}</h3>
+        <span class="drawer-profile-email">${student.email}</span>
+      </div>
+
+      <div class="drawer-info-grid">
+        <div class="drawer-info-row">
+          <span class="drawer-info-label">Student ID</span>
+          <span class="drawer-info-value">#${student.id}</span>
         </div>
+        <div class="drawer-info-row">
+          <span class="drawer-info-label">Major/Department</span>
+          <span class="drawer-info-value">${student.department}</span>
+        </div>
+        <div class="drawer-info-row">
+          <span class="drawer-info-label">Academic Year</span>
+          <span class="drawer-info-value">Year ${student.year}</span>
+        </div>
+        <div class="drawer-info-row">
+          <span class="drawer-info-label">Enrollment Date</span>
+          <span class="drawer-info-value">${formattedDate}</span>
+        </div>
+      </div>
+
+      <div class="drawer-actions-box">
+        <button class="btn btn-secondary btn-sm" id="drawer-btn-edit" data-id="${student.id}">
+          <i class="fa-solid fa-pen-to-square"></i> Edit Profile
+        </button>
+        <button class="btn btn-danger btn-sm" id="drawer-btn-delete" data-id="${student.id}">
+          <i class="fa-solid fa-trash-can"></i> Delete
+        </button>
       </div>
     `;
 
-    document.getElementById('details-modal').classList.add('active');
+    // Bind action events inside the drawer
+    document.getElementById('drawer-btn-edit').addEventListener('click', () => {
+      this.closeDrawer();
+      window.location.hash = `#/students/edit/${student.id}`;
+    });
+
+    document.getElementById('drawer-btn-delete').addEventListener('click', () => {
+      this.closeDrawer();
+      this.showDeleteConfirm(student);
+    });
+
+    this.openDrawer();
   }
 
   /**
-   * Renders the Deletion Confirmation alert overlay.
-   * @param {Object} student - Student record object
+   * Renders the delete confirmation warning card.
+   * @param {Object} student - Student record details
    */
   showDeleteConfirm(student) {
     const previewBox = document.getElementById('delete-preview-box');
     previewBox.innerHTML = `
       <div><strong>ID:</strong> #${student.id}</div>
       <div><strong>Name:</strong> ${student.name}</div>
-      <div><strong>Email:</strong> ${student.email}</div>
       <div><strong>Major:</strong> ${student.department}</div>
     `;
 
     const modal = document.getElementById('delete-modal');
     modal.classList.add('active');
 
-    // Override the confirm action
     const btnConfirm = document.getElementById('btn-delete-confirm');
     const newBtnConfirm = btnConfirm.cloneNode(true);
     btnConfirm.parentNode.replaceChild(newBtnConfirm, btnConfirm);
@@ -717,7 +883,7 @@ class AppController {
         modal.classList.remove('active');
         this.showToast('Student record has been successfully deleted.');
         
-        await this.loadAndRenderStudentsList();
+        await this.loadAndRenderStudentsGrid(document.getElementById('portal-content-area'));
       } catch (err) {
         this.showToast(err.message, 'error');
       } finally {
@@ -728,78 +894,82 @@ class AppController {
   }
 
   /* ==========================================================================
-     View Renderers: Add / Edit Student Forms
+     Portal View: Vercel Style Forms (Add / Edit Student)
      ========================================================================== */
 
-  renderAddStudentForm() {
-    this.contentArea.innerHTML = `
-      <div class="form-layout-wrapper glass-card">
-        <div class="form-header">
-          <h2>Enroll New Student</h2>
-          <p>Register a student record directly into the database system</p>
+  renderAddStudentForm(target) {
+    target.innerHTML = `
+      <div class="form-wrapper">
+        <div class="form-title-box">
+          <h2>Enroll Student</h2>
+          <p>Enter profile details to register the student record</p>
         </div>
         
-        <form id="student-form" novalidate>
-          <div class="form-group">
-            <label class="form-label" for="form-name">Full Name</label>
-            <input type="text" class="form-control" id="form-name" placeholder="e.g. Johnathan Doe" required>
-            <span class="invalid-feedback">Please enter a valid student name.</span>
-          </div>
+        <div class="form-card">
+          <form id="student-form" novalidate>
+            <div class="input-group">
+              <label class="input-label" for="form-name">Name</label>
+              <input type="text" class="input-field" id="form-name" placeholder="Johnathan Doe" required>
+              <span class="error-hint">Please enter a valid student name.</span>
+            </div>
 
-          <div class="form-group">
-            <label class="form-label" for="form-email">Email Address</label>
-            <input type="email" class="form-control" id="form-email" placeholder="e.g. john.doe@school.edu" required>
-            <span class="invalid-feedback" id="email-feedback">Please enter a valid school email address.</span>
-          </div>
+            <div class="input-group">
+              <label class="input-label" for="form-email">Email Address</label>
+              <input type="email" class="input-field" id="form-email" placeholder="john.doe@school.edu" required>
+              <span class="error-hint" id="email-error">Please enter a valid school email address.</span>
+            </div>
 
-          <div class="form-group">
-            <label class="form-label" for="form-dept">Department / Major</label>
-            <input type="text" class="form-control" id="form-dept" placeholder="e.g. Computer Science" required>
-            <span class="invalid-feedback">Please specify the academic major.</span>
-          </div>
+            <div class="input-group">
+              <label class="input-label" for="form-dept">Major / Department</label>
+              <input type="text" class="input-field" id="form-dept" placeholder="Computer Science" required>
+              <span class="error-hint">Please specify the academic major.</span>
+            </div>
 
-          <div class="form-group">
-            <label class="form-label" for="form-year">Academic Year</label>
-            <select class="form-control" id="form-year" required>
-              <option value="" disabled selected>Select active year</option>
-              <option value="1">Year 1 (Freshman)</option>
-              <option value="2">Year 2 (Sophomore)</option>
-              <option value="3">Year 3 (Junior)</option>
-              <option value="4">Year 4 (Senior)</option>
-              <option value="5">Year 5</option>
-              <option value="6">Year 6</option>
-            </select>
-            <span class="invalid-feedback">Please select an academic year (1-6).</span>
-          </div>
+            <div class="input-group">
+              <label class="input-label" for="form-year">Academic Year</label>
+              <select class="input-field" id="form-year" style="cursor: pointer;" required>
+                <option value="" disabled selected>Select academic year</option>
+                <option value="1">Year 1 (Freshman)</option>
+                <option value="2">Year 2 (Sophomore)</option>
+                <option value="3">Year 3 (Junior)</option>
+                <option value="4">Year 4 (Senior)</option>
+                <option value="5">Year 5</option>
+                <option value="6">Year 6</option>
+              </select>
+              <span class="error-hint">Please select an academic year (1-6).</span>
+            </div>
 
-          <div class="form-actions">
-            <a href="#/students" class="btn btn-secondary">Cancel</a>
-            <button type="submit" class="btn btn-primary" id="btn-form-submit">
-              <i class="fa-solid fa-floppy-disk"></i> Save Student
-            </button>
-          </div>
-        </form>
+            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px;">
+              <a href="#/students" class="btn btn-secondary">Cancel</a>
+              <button type="submit" class="btn btn-primary" id="btn-form-submit">
+                <i class="fa-solid fa-floppy-disk"></i> Enroll Student
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     `;
+
+    // GSAP form loader
+    gsap.from(".form-card", { opacity: 0, scale: 0.98, y: 15, duration: 0.5, ease: "power2.out" });
 
     const form = document.getElementById('student-form');
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (this.validateForm(form)) {
+      if (this.validateForm()) {
         await this.submitStudentData(null);
       }
     });
   }
 
-  async loadAndRenderEditStudentForm(id) {
-    this.showLoader();
+  async loadAndRenderEditStudentForm(target, id) {
     try {
       const response = await window.studentApi.getById(id);
       const student = response.data;
 
       if (!student) {
-        this.contentArea.innerHTML = `
-          <div class="glass-card form-layout-wrapper" style="text-align: center; padding: 40px;">
+        target.innerHTML = `
+          <div class="form-wrapper glassmorphic-card" style="text-align: center; padding: 40px;">
             <i class="fa-solid fa-triangle-exclamation" style="font-size: 48px; color: var(--warning-color); margin-bottom: 16px;"></i>
             <h2>Student Not Found</h2>
             <p style="color: var(--text-secondary); margin-bottom: 24px;">The student record you are looking to edit does not exist or has been deleted.</p>
@@ -809,60 +979,65 @@ class AppController {
         return;
       }
 
-      this.contentArea.innerHTML = `
-        <div class="form-layout-wrapper glass-card">
-          <div class="form-header">
-            <h2>Modify Student Details</h2>
-            <p>Update database entries for student ID #${student.id}</p>
+      target.innerHTML = `
+        <div class="form-wrapper">
+          <div class="form-title-box">
+            <h2>Modify Details</h2>
+            <p>Modify student details for Student ID #${student.id}</p>
           </div>
           
-          <form id="student-form" novalidate>
-            <div class="form-group">
-              <label class="form-label" for="form-name">Full Name</label>
-              <input type="text" class="form-control" id="form-name" value="${student.name}" required>
-              <span class="invalid-feedback">Please enter a valid student name.</span>
-            </div>
+          <div class="form-card">
+            <form id="student-form" novalidate>
+              <div class="input-group">
+                <label class="input-label" for="form-name">Name</label>
+                <input type="text" class="input-field" id="form-name" value="${student.name}" required>
+                <span class="error-hint">Please enter a valid student name.</span>
+              </div>
 
-            <div class="form-group">
-              <label class="form-label" for="form-email">Email Address</label>
-              <input type="email" class="form-control" id="form-email" value="${student.email}" required>
-              <span class="invalid-feedback" id="email-feedback">Please enter a valid school email address.</span>
-            </div>
+              <div class="input-group">
+                <label class="input-label" for="form-email">Email Address</label>
+                <input type="email" class="input-field" id="form-email" value="${student.email}" required>
+                <span class="error-hint" id="email-error">Please enter a valid school email address.</span>
+              </div>
 
-            <div class="form-group">
-              <label class="form-label" for="form-dept">Department / Major</label>
-              <input type="text" class="form-control" id="form-dept" value="${student.department}" required>
-              <span class="invalid-feedback">Please specify the academic major.</span>
-            </div>
+              <div class="input-group">
+                <label class="input-label" for="form-dept">Major / Department</label>
+                <input type="text" class="input-field" id="form-dept" value="${student.department}" required>
+                <span class="error-hint">Please specify the academic major.</span>
+              </div>
 
-            <div class="form-group">
-              <label class="form-label" for="form-year">Academic Year</label>
-              <select class="form-control" id="form-year" required>
-                <option value="" disabled>Select active year</option>
-                <option value="1" ${student.year === 1 ? 'selected' : ''}>Year 1 (Freshman)</option>
-                <option value="2" ${student.year === 2 ? 'selected' : ''}>Year 2 (Sophomore)</option>
-                <option value="3" ${student.year === 3 ? 'selected' : ''}>Year 3 (Junior)</option>
-                <option value="4" ${student.year === 4 ? 'selected' : ''}>Year 4 (Senior)</option>
-                <option value="5" ${student.year === 5 ? 'selected' : ''}>Year 5</option>
-                <option value="6" ${student.year === 6 ? 'selected' : ''}>Year 6</option>
-              </select>
-              <span class="invalid-feedback">Please select an academic year (1-6).</span>
-            </div>
+              <div class="input-group">
+                <label class="input-label" for="form-year">Academic Year</label>
+                <select class="input-field" id="form-year" style="cursor: pointer;" required>
+                  <option value="" disabled>Select academic year</option>
+                  <option value="1" ${student.year === 1 ? 'selected' : ''}>Year 1 (Freshman)</option>
+                  <option value="2" ${student.year === 2 ? 'selected' : ''}>Year 2 (Sophomore)</option>
+                  <option value="3" ${student.year === 3 ? 'selected' : ''}>Year 3 (Junior)</option>
+                  <option value="4" ${student.year === 4 ? 'selected' : ''}>Year 4 (Senior)</option>
+                  <option value="5" ${student.year === 5 ? 'selected' : ''}>Year 5</option>
+                  <option value="6" ${student.year === 6 ? 'selected' : ''}>Year 6</option>
+                </select>
+                <span class="error-hint">Please select an academic year (1-6).</span>
+              </div>
 
-            <div class="form-actions">
-              <a href="#/students" class="btn btn-secondary">Cancel</a>
-              <button type="submit" class="btn btn-primary" id="btn-form-submit">
-                <i class="fa-solid fa-floppy-disk"></i> Apply Changes
-              </button>
-            </div>
-          </form>
+              <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px;">
+                <a href="#/students" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary" id="btn-form-submit">
+                  <i class="fa-solid fa-floppy-disk"></i> Apply Changes
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       `;
+
+      // GSAP form loader
+      gsap.from(".form-card", { opacity: 0, scale: 0.98, y: 15, duration: 0.5, ease: "power2.out" });
 
       const form = document.getElementById('student-form');
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        if (this.validateForm(form)) {
+        if (this.validateForm()) {
           await this.submitStudentData(student.id);
         }
       });
@@ -874,10 +1049,8 @@ class AppController {
 
   /**
    * Client-side validation checking values using regex patterns before contacting server.
-   * @param {HTMLFormElement} form - Form element target
-   * @returns {boolean} True if form validates successfully, false otherwise
    */
-  validateForm(form) {
+  validateForm() {
     let isValid = true;
 
     const nameInput = document.getElementById('form-name');
@@ -885,31 +1058,26 @@ class AppController {
     const deptInput = document.getElementById('form-dept');
     const yearSelect = document.getElementById('form-year');
 
-    // Reset validation statuses
     const controls = [nameInput, emailInput, deptInput, yearSelect];
     controls.forEach(control => control.classList.remove('invalid'));
 
-    // Validate Name
     if (!nameInput.value.trim()) {
       nameInput.classList.add('invalid');
       isValid = false;
     }
 
-    // Validate Email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailInput.value.trim() || !emailRegex.test(emailInput.value.trim())) {
       emailInput.classList.add('invalid');
-      document.getElementById('email-feedback').textContent = 'Please enter a valid school email address.';
+      document.getElementById('email-error').textContent = 'Please enter a valid school email address.';
       isValid = false;
     }
 
-    // Validate Department
     if (!deptInput.value.trim()) {
       deptInput.classList.add('invalid');
       isValid = false;
     }
 
-    // Validate Year
     if (!yearSelect.value) {
       yearSelect.classList.add('invalid');
       isValid = false;
@@ -919,8 +1087,8 @@ class AppController {
   }
 
   /**
-   * Sends student data back to REST API. Parses schema uniqueness constraints returned by backend.
-   * @param {number|null} id - Student ID if updating, null if enrolling new student
+   * Submits data to REST APIs and manages active button spinner states.
+   * @param {number|null} id - Student ID or null
    */
   async submitStudentData(id) {
     const btnSubmit = document.getElementById('btn-form-submit');
@@ -948,15 +1116,13 @@ class AppController {
         this.showToast('Student enrolled successfully.');
       }
 
-      // Redirect back to main portal directory
       window.location.hash = '#/students';
     } catch (err) {
-      // Highlight exact field validation failures (e.g. duplicate email database constraints)
       if (err.errors && err.errors.length > 0) {
         err.errors.forEach(valErr => {
           if (valErr.field === 'email') {
             emailInput.classList.add('invalid');
-            document.getElementById('email-feedback').textContent = valErr.message;
+            document.getElementById('email-error').textContent = valErr.message;
           } else if (valErr.field === 'name') {
             nameInput.classList.add('invalid');
           } else if (valErr.field === 'department') {
@@ -971,18 +1137,15 @@ class AppController {
       }
     } finally {
       btnSubmit.disabled = false;
-      btnSubmit.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> ${id ? 'Apply Changes' : 'Save Student'}`;
+      btnSubmit.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> ${id ? 'Apply Changes' : 'Enroll Student'}`;
     }
   }
 }
 
-// Instantiate and start routing lifecycle once DOM content loads
+// Instantiate and bind routing triggers
 document.addEventListener('DOMContentLoaded', () => {
   const controller = new AppController();
 
-  // Bind router triggers
   window.addEventListener('hashchange', () => controller.handleRoute());
-  
-  // Trigger initial route load on load
   controller.handleRoute();
 });
