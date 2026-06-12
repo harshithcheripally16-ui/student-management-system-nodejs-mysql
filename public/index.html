@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Management System - Portal</title>
+  <!-- Google Fonts: Inter and Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.2/css/all.css">
+  <!-- Custom Premium Styles -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  
+  <!-- Global Application Wrapper -->
+  <div id="app-wrapper">
+    
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar">
+      <div class="sidebar-brand">
+        <i class="fa-solid fa-graduation-cap brand-icon"></i>
+        <span>EduPortal</span>
+      </div>
+      
+      <nav class="sidebar-menu">
+        <a href="#/dashboard" class="menu-item active" id="nav-dashboard">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="#/students" class="menu-item" id="nav-students">
+          <i class="fa-solid fa-users"></i>
+          <span>Students</span>
+        </a>
+        <a href="#/students/add" class="menu-item" id="nav-add-student">
+          <i class="fa-solid fa-user-plus"></i>
+          <span>Add Student</span>
+        </a>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <div class="db-status">
+          <span class="status-indicator online"></span>
+          <span>MySQL Connected</span>
+        </div>
+        <div class="version">v1.1.0</div>
+      </div>
+    </aside>
+    
+    <!-- Main Window Layout -->
+    <main id="main-content">
+      <!-- Top Header Navigation -->
+      <header id="top-header">
+        <button id="sidebar-toggle" aria-label="Toggle Sidebar">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div class="header-title">
+          <h1 id="page-title">Dashboard</h1>
+        </div>
+        <div class="header-user">
+          <div class="user-avatar">SD</div>
+          <div class="user-details">
+            <span class="user-name">Delivery Engineer</span>
+            <span class="user-role">Administrator</span>
+          </div>
+        </div>
+      </header>
+      
+      <!-- Dynamic View Injection Area -->
+      <div id="content-area">
+        <!-- Views are rendered dynamically here via app.js -->
+        <div class="view-loader">
+          <i class="fa-solid fa-circle-notch fa-spin"></i>
+          <span>Loading portal data...</span>
+        </div>
+      </div>
+    </main>
+  </div>
+  
+  <!-- Confirmation Delete Modal Overlay -->
+  <div class="modal-overlay" id="delete-modal">
+    <div class="modal-card">
+      <div class="modal-header warning">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <h2>Confirm Deletion</h2>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to permanently delete this student record? This action is irreversible.</p>
+        <div class="student-delete-preview" id="delete-preview-box">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-delete-cancel">Cancel</button>
+        <button class="btn btn-danger" id="btn-delete-confirm">Delete Record</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Student Details Modal Overlay -->
+  <div class="modal-overlay" id="details-modal">
+    <div class="modal-card details-card">
+      <div class="modal-header">
+        <i class="fa-solid fa-user-graduate"></i>
+        <h2>Student Profile</h2>
+        <button class="modal-close" id="btn-details-close">&times;</button>
+      </div>
+      <div class="modal-body" id="details-modal-body">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Stack Container -->
+  <div id="toast-container"></div>
+
+  <!-- Application Frontend Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -8,48 +8,59 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const path = require('path');
 const studentRoutes = require('./routes/studentRoutes');
 const errorHandler = require('./middlewares/errorMiddleware');
 
 const app = express();
 
-// Set up security HTTP headers (Helmet)
-app.use(helmet());
+// Configure Helmet with custom Content Security Policy (CSP)
+// This secures the app while allowing fonts and icons from trusted CDNs
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://kit.fontawesome.com", "https://cdn.jsdelivr.net"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://use.fontawesome.com", "https://cdn.jsdelivr.net"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com", "https://use.fontawesome.com"],
+        imgSrc: ["'self'", "data:", "https://images.unsplash.com"],
+        connectSrc: ["'self'", "https://ka-f.fontawesome.com"]
+      }
+    }
+  })
+);
 
 // Enable Cross-Origin Resource Sharing (CORS)
 app.use(cors());
 
 // HTTP request logger middleware
-// Logs minimal dev style logs in non-production, standard apache logs in production
 if (process.env.NODE_ENV === 'production') {
   app.use(morgan('combined'));
 } else {
   app.use(morgan('dev'));
 }
 
-// Parse incoming requests with JSON payloads
+// Parse incoming requests with JSON and URL-encoded payloads
 app.use(express.json());
-
-// Parse URL-encoded payloads (useful for form submissions)
 app.use(express.urlencoded({ extended: true }));
 
-// Base / Sanity check route
-app.get('/', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Welcome to the Student Management System REST API.',
-    documentation: 'See README.md for endpoint specifications.'
-  });
-});
+// Serve frontend static assets from the 'public' directory
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Register student routes
+// Register student REST API routes
 app.use('/students', studentRoutes);
 
-// Catch-all route for non-existent endpoints (404 Handler)
-app.use((req, res, next) => {
+// Catch-all route for non-existent API endpoints (404 Handler)
+app.use('/api/*', (req, res, next) => {
   const error = new Error(`Resource not found - ${req.originalUrl}`);
   res.statusCode = 404;
   next(error);
+});
+
+// For any other non-API routes, fall back to index.html to support SPA routing
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Centralized error handling middleware
