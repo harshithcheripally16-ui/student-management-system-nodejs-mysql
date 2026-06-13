@@ -1316,47 +1316,215 @@ class AppController {
     emailInput.addEventListener('input', validateEmail);
     emailInput.addEventListener('blur', validateEmail);
 
-    const deptSeeds = [
-      "Computer Science",
-      "Information Technology",
-      "Mechanical Engineering",
-      "Mechatronics",
-      "Civil Engineering",
-      "Chemical Engineering",
-      "Electrical Engineering",
-      "Electronics Engineering",
-      "Aerospace Engineering",
-      "Biomedical Engineering",
-      "Environmental Science",
-      "Business Administration",
-      "Physics",
-      "Mathematics"
-    ];
-    
+    const DEPARTMENTS_BY_CATEGORY = {
+      "Engineering & Technology": [
+        "Computer Science Engineering (CSE)",
+        "Information Technology (IT)",
+        "Artificial Intelligence & Machine Learning",
+        "Data Science",
+        "Cyber Security",
+        "Electronics & Communication Engineering (ECE)",
+        "Electrical & Electronics Engineering (EEE)",
+        "Mechanical Engineering",
+        "Civil Engineering",
+        "Chemical Engineering",
+        "Biotechnology",
+        "Mechatronics",
+        "Aerospace Engineering"
+      ],
+      "Business & Commerce": [
+        "Commerce",
+        "Accounting",
+        "Finance",
+        "Banking",
+        "Business Administration (BBA)",
+        "Marketing",
+        "Human Resources",
+        "Entrepreneurship",
+        "International Business"
+      ],
+      "Arts & Humanities": [
+        "English Literature",
+        "History",
+        "Political Science",
+        "Philosophy",
+        "Sociology",
+        "Anthropology",
+        "Linguistics"
+      ],
+      "Psychology & Social Sciences": [
+        "Psychology",
+        "Clinical Psychology",
+        "Counseling Psychology",
+        "Social Work",
+        "Criminology"
+      ],
+      "Science": [
+        "Physics",
+        "Chemistry",
+        "Mathematics",
+        "Statistics",
+        "Environmental Science",
+        "Geology"
+      ],
+      "Medical & Health Sciences": [
+        "Nursing",
+        "Pharmacy",
+        "Physiotherapy",
+        "Public Health",
+        "Nutrition & Dietetics",
+        "Medical Laboratory Technology"
+      ],
+      "Law": [
+        "LLB",
+        "Corporate Law",
+        "Criminal Law",
+        "Constitutional Law"
+      ],
+      "Design & Creative Arts": [
+        "Graphic Design",
+        "Fashion Design",
+        "Interior Design",
+        "Animation",
+        "Fine Arts",
+        "Photography"
+      ],
+      "Media & Communication": [
+        "Journalism",
+        "Mass Communication",
+        "Digital Media",
+        "Film Studies"
+      ],
+      "Hospitality & Culinary Arts": [
+        "Hotel Management",
+        "Hospitality Management",
+        "Culinary Arts",
+        "Bakery & Pastry Arts",
+        "Food Production"
+      ],
+      "Education": [
+        "B.Ed",
+        "Early Childhood Education",
+        "Special Education"
+      ],
+      "Agriculture": [
+        "Agriculture",
+        "Horticulture",
+        "Forestry",
+        "Food Technology"
+      ]
+    };
+
     let currentFocus = -1;
-    
+
     const showDeptSuggestions = (query) => {
-      const uniqueDepts = new Set([
-        ...deptSeeds,
-        ...this.students.map(s => s.department)
-      ]);
       const filterQuery = query.toLowerCase().trim();
-      const matched = Array.from(uniqueDepts).filter(dept => 
-        dept.toLowerCase().includes(filterQuery)
-      );
-      
       deptDropdown.innerHTML = '';
       currentFocus = -1;
+
+      if (filterQuery.length === 0) {
+        deptDropdown.classList.remove('active');
+        return;
+      }
+
+      // Calculate frequency of selections in current cache
+      const freq = {};
+      this.students.forEach(s => {
+        if (s.department) {
+          freq[s.department] = (freq[s.department] || 0) + 1;
+        }
+      });
+
+      // Gather all matched departments
+      const matchedMap = new Map(); // deptName -> category
       
-      if (filterQuery.length > 0 && matched.length > 0) {
+      // Check predefined departments
+      for (const [cat, depts] of Object.entries(DEPARTMENTS_BY_CATEGORY)) {
+        depts.forEach(dept => {
+          if (dept.toLowerCase().includes(filterQuery)) {
+            matchedMap.set(dept, cat);
+          }
+        });
+      }
+
+      // Check database custom departments not in predefined list
+      this.students.forEach(s => {
+        const dept = s.department;
+        if (dept && dept.toLowerCase().includes(filterQuery) && !matchedMap.has(dept)) {
+          matchedMap.set(dept, "Other / Custom Majors");
+        }
+      });
+
+      const escapeHtml = (str) => {
+        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+      };
+
+      if (matchedMap.size === 0) {
         deptDropdown.classList.add('active');
-        matched.forEach((dept) => {
+        
+        const noMatchItem = document.createElement('div');
+        noMatchItem.className = 'autocomplete-no-match';
+        noMatchItem.textContent = 'No matching department found';
+        deptDropdown.appendChild(noMatchItem);
+        
+        const customItem = document.createElement('div');
+        customItem.className = 'autocomplete-item custom-create-item';
+        customItem.innerHTML = `Use "<strong>${escapeHtml(query)}</strong>" as custom department`;
+        customItem.addEventListener('mousedown', (ev) => ev.preventDefault());
+        customItem.addEventListener('click', () => {
+          deptInput.value = query;
+          deptDropdown.classList.remove('active');
+          validateDept();
+          updateFormProgress();
+          saveRecentDept(query);
+        });
+        deptDropdown.appendChild(customItem);
+        return;
+      }
+
+      deptDropdown.classList.add('active');
+
+      const allMatches = Array.from(matchedMap.keys());
+      
+      // Extract top frequently selected matches (frequency > 0)
+      const frequentMatches = allMatches
+        .filter(dept => (freq[dept] || 0) > 0)
+        .sort((a, b) => (freq[b] || 0) - (freq[a] || 0))
+        .slice(0, 3);
+
+      const groups = {};
+      
+      if (frequentMatches.length > 0) {
+        groups["Frequently Selected"] = frequentMatches;
+      }
+
+      allMatches.forEach(dept => {
+        if (frequentMatches.includes(dept)) return;
+        const cat = matchedMap.get(dept);
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push(dept);
+      });
+
+      const highlightMatch = (text, q) => {
+        const escapedQ = q.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+        const regex = new RegExp(`(${escapedQ})`, 'gi');
+        return escapeHtml(text).replace(regex, '<span class="highlight-text">$1</span>');
+      };
+
+      for (const [groupTitle, depts] of Object.entries(groups)) {
+        if (depts.length === 0) continue;
+        
+        const groupHeader = document.createElement('div');
+        groupHeader.className = 'autocomplete-group-title';
+        groupHeader.textContent = groupTitle;
+        deptDropdown.appendChild(groupHeader);
+        
+        depts.forEach(dept => {
           const item = document.createElement('div');
           item.className = 'autocomplete-item';
-          item.textContent = dept;
-          item.addEventListener('mousedown', (ev) => {
-            ev.preventDefault();
-          });
+          item.innerHTML = highlightMatch(dept, filterQuery);
+          
+          item.addEventListener('mousedown', (ev) => ev.preventDefault());
           item.addEventListener('click', () => {
             deptInput.value = dept;
             deptDropdown.classList.remove('active');
@@ -1364,10 +1532,9 @@ class AppController {
             updateFormProgress();
             saveRecentDept(dept);
           });
+          
           deptDropdown.appendChild(item);
         });
-      } else {
-        deptDropdown.classList.remove('active');
       }
     };
 

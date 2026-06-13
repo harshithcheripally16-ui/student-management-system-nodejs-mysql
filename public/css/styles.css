@@ -1393,6 +1393,36 @@ select.input-field option {
   background-color: var(--btn-hover-bg);
 }
 
+.autocomplete-group-title {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  padding: 12px 16px 4px 16px;
+  user-select: none;
+}
+
+.autocomplete-no-match {
+  padding: 12px 16px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+  user-select: none;
+}
+
+.highlight-text {
+  color: var(--primary-color);
+  font-weight: 700;
+}
+
+.autocomplete-item.custom-create-item {
+  color: var(--primary-color);
+  font-style: italic;
+  border-top: 1px dashed var(--border-glow);
+}
+
 /* Searchable academic year dropdown */
 .custom-select-wrapper {
   position: relative;
