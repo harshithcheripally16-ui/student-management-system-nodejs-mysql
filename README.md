@@ -1,76 +1,75 @@
-# Student Management System
+# CampusOS - Premium Student Directory
 
-A simple and responsive web application designed to manage student records. It features an interactive dashboard, visual statistics, and student profiling, allowing users to add, view, update, search, and delete student records.
+CampusOS is a sleek, modern, and portfolio-grade Student Directory and registry application built using Node.js, Express, and MySQL. It features an interactive dashboard, clean analytics, and responsive student profiling. 
+
+Designed with an editorial, minimalist aesthetic inspired by modern design agencies, CampusOS aims to present academic administration tools with maximum craftsmanship.
+
+![CampusOS Dashboard](screenshots/dashboard.png)
 
 ## Features
 
-* **Add Students**: Register new students with their name, email, department, and academic year.
-* **View Students**: Displays student records in a clean profile card layout with quick action buttons.
-* **Update Student Information**: Easily edit and update existing student profiles.
-* **Delete Students**: Permanently remove student records from the database.
-* **Search Students**: Instant search to filter students by name, email, or department.
-* **Responsive Dashboard**: Beautiful charts showing enrollment trends and department distribution.
-* **MySQL Database Integration**: Safe data persistence using connection pooling and parameterized queries.
+* **Interactive Dashboard**: A modular grid featuring enrollment growth trends (Line Chart) and department distributions (Doughnut Chart) that automatically adjust theme styling based on system preferences.
+* **Student Catalog**: An elegant catalog showing student profile cards with outlined department and year tags.
+* **Notion-Style Drawer**: Clicking a student's card slides out a clean, product-spec-inspired profile detail panel.
+* **Full CRUD Operations**:
+  * **Register**: Create new student profiles with robust client-side and server-side validation.
+  * **Modify**: Update student details inline.
+  * **Dismiss**: Safely delete student records after confirming with a modal check.
+* **Security & Performance**: Uses parameter-bound MySQL prepared statements to secure inputs against SQL injection and utilizes connection pooling for optimal database lifecycles.
+* **Resilient Fallbacks**: The system remains functional even if external resources (like Chart.js) fail to load, showing helpful placeholder messages rather than throwing runtime errors.
 
-## Technologies Used
+## Tech Stack
 
-* **Node.js** & **Express.js** (Backend)
-* **MySQL** (Database)
-* **HTML5**, **CSS3**, & **JavaScript** (Frontend SPA)
-* **Chart.js** (Analytics Visualizations)
-* **GSAP** (Smooth UI Animations)
-* **Git** (Version Control)
+* **Frontend**: HTML5, Vanilla CSS3 (Custom transitions, prefers-color-scheme responsive dark/light styling, flexbox/grid layout), JavaScript (Modern ES6 SPA Hash Router)
+* **Backend**: Node.js & Express.js
+* **Database**: MySQL (using `mysql2` connection pool)
+* **Visualizations**: Chart.js (CDN-delivered with local runtime fallback checks)
 
-## Screenshots
+---
 
-### Interactive Dashboard Layout
-The clean, dark-themed responsive dashboard displaying student distribution analytics, quick KPI cards, search controls, and the list of student records.
+## Getting Started
 
-![Student Management System Dashboard](screenshots/dashboard.png)
+### Prerequisites
+* [Node.js](https://nodejs.org/) installed
+* [MySQL Server](https://www.mysql.com/) running locally
 
-## Installation
-
-Follow these steps to set up and run the project locally:
-
-### 1. Clone the repository
+### 1. Clone & Install
 ```bash
 git clone https://github.com/harshithcheripally16-ui/student-management-system-nodejs-mysql.git
 cd student-management-system-nodejs-mysql
-```
-
-### 2. Install dependencies
-```bash
 npm install
 ```
 
-### 3. Configure the environment variables
-Create a `.env` file in the root directory (you can copy `.env.example` as a template) and update your MySQL connection details:
+### 2. Configure Environment variables
+Create a `.env` file in the root directory (using `.env.example` as a template) and add your local MySQL credentials:
 ```env
 PORT=3000
 DB_HOST=127.0.0.1
-DB_USER=root
+DB_PORT=3306
+DB_USER=your_mysql_username
 DB_PASSWORD=your_mysql_password
 DB_NAME=student_db
 ```
 
-### 4. Start the server
+### 3. Initialize & Start
+Run the start command. The server will automatically connect to MySQL, verify the connection pool, create the `student_db` database if it doesn't exist, and create the required table structures:
 ```bash
 npm start
 ```
-*(The server will automatically connect to MySQL, create the `student_db` database, and initialize the required table structures).*
 
-Open your browser and visit `http://localhost:3000` to view the application.
+Once running, visit `http://localhost:3000` in your web browser.
+
+---
 
 ## API Endpoints
 
-* **GET /students** - Fetch all student records.
-* **GET /students/:id** - Get details for a specific student.
-* **POST /students** - Create a new student record.
-* **PUT /students/:id** - Update an existing student record.
-* **DELETE /students/:id** - Delete a student record by ID.
+* `GET /students` - Retrieves all student records.
+* `GET /students/:id` - Retrieves details of a specific student.
+* `POST /students` - Creates a new student profile (validated).
+* `PUT /students/:id` - Updates an existing student profile.
+* `DELETE /students/:id` - Removes a student record by ID.
 
 ## Author
 
 **Harshith Cheripally**
-
-* GitHub: [harshithcheripally16-ui](https://github.com/harshithcheripally16-ui)
+* GitHub: [@harshithcheripally16-ui](https://github.com/harshithcheripally16-ui)

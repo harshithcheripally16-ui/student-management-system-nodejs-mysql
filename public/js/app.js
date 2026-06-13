@@ -168,73 +168,71 @@ class AppController {
   async renderLandingPage() {
     this.viewTarget.innerHTML = `
       <div class="landing-wrapper">
-        <!-- Minimal floating Navbar -->
+        <!-- Minimal Navbar -->
         <header class="landing-nav">
           <div class="brand">
-            <i class="fa-solid fa-graduation-cap"></i>
-            <span class="brand-text">Academix</span>
+            <span class="brand-text">Campus<span>.OS</span></span>
           </div>
-          <a href="#/dashboard" class="btn btn-primary btn-sm">Launch Portal</a>
+          <a href="#/dashboard" class="btn btn-primary btn-sm">Launch Platform</a>
         </header>
 
-        <!-- Hero section -->
+        <!-- Hero Section -->
         <section class="landing-hero">
           <div class="hero-tag">
-            <i class="fa-solid fa-bolt"></i> Version 1.2.0 Released
+            <i class="fa-solid fa-circle" style="font-size: 6px; color: var(--primary-color);"></i> Workspace Version 1.2.0
           </div>
           <h1 class="hero-title">
-            The Next-Generation<br><span>Student Registry Portal.</span>
+            The minimal student directory<br><span>engineered for performance.</span>
           </h1>
           <p class="hero-subtitle">
-            A secure, portfolio-grade management platform structured with clean MVC architecture, parameterized MySQL interfaces, robust validator guards, and elegant glassmorphic dashboard analytics.
+            An elegant, portfolio-grade registry platform structured with clean MVC principles, optimized MySQL query pooling, server-validated inputs, and custom visual metrics.
           </p>
           <div class="hero-ctas">
-            <a href="#/dashboard" class="btn btn-glow">Launch Workspace</a>
+            <a href="#/dashboard" class="btn btn-primary">Launch Workspace</a>
             <a href="#/students" class="btn btn-secondary">Explore Directory</a>
           </div>
         </section>
 
-        <!-- Live metrics counter grid -->
+        <!-- Metrics Section -->
         <section class="landing-stats" id="landing-stats-container">
           <div class="landing-stat-card">
             <div class="landing-stat-number" id="count-uptime">99.9%</div>
-            <div class="landing-stat-label">System Uptime</div>
+            <div class="landing-stat-label">System Availability</div>
           </div>
           <div class="landing-stat-card">
             <div class="landing-stat-number" id="count-latency">&lt; 1.2s</div>
-            <div class="landing-stat-label">Database Response</div>
+            <div class="landing-stat-label">Query Speed</div>
           </div>
           <div class="landing-stat-card">
             <div class="landing-stat-number" id="count-pooling">Active</div>
-            <div class="landing-stat-label">Connection Pooling</div>
+            <div class="landing-stat-label">Database Pooling</div>
           </div>
         </section>
 
-        <!-- Features grid -->
+        <!-- Capabilities Section -->
         <section class="landing-features">
-          <div class="section-label">Capabilities</div>
-          <h2 class="section-title">Designed for modern administration.</h2>
+          <div class="section-label">Features</div>
+          <h2 class="section-title">Refined administrative tools.</h2>
           <div class="feature-grid">
             <div class="feature-card">
-              <div class="feature-card-icon"><i class="fa-solid fa-shield-halved"></i></div>
-              <h3 class="feature-card-title">Prepared Statement SQL Bindings</h3>
-              <p class="feature-card-desc">Complete mitigation against SQL Injection vectors using parameter-binding query protocols.</p>
+              <div class="feature-card-icon"><i class="fa-solid fa-lock"></i></div>
+              <h3 class="feature-card-title">Secured SQL Queries</h3>
+              <p class="feature-card-desc">Comprehensive mitigation against SQL Injection vectors using parameter-binding prepared statements.</p>
             </div>
             <div class="feature-card">
-              <div class="feature-card-icon"><i class="fa-solid fa-arrows-rotate"></i></div>
-              <h3 class="feature-card-title">Graceful Database Lifecycles</h3>
-              <p class="feature-card-desc">Active process shutdown handlers close database connection pools safely on SIGINT/SIGTERM signals.</p>
+              <div class="feature-card-icon"><i class="fa-solid fa-power-off"></i></div>
+              <h3 class="feature-card-title">Graceful Resource Lifecycles</h3>
+              <p class="feature-card-desc">Active process hooks close database connection pools safely upon intercepting termination signals.</p>
             </div>
             <div class="feature-card">
-              <div class="feature-card-icon"><i class="fa-solid fa-diagram-project"></i></div>
-              <h3 class="feature-card-title">Structured MVC Code Pattern</h3>
-              <p class="feature-card-desc">Isolates route schemes, request validator schemas, database models, and controller routers cleanly.</p>
+              <div class="feature-card-icon"><i class="fa-solid fa-cube"></i></div>
+              <h3 class="feature-card-title">Structured Architecture</h3>
+              <p class="feature-card-desc">Rigid Model-View-Controller codebase division ensuring maintainable logic flow and clean styling.</p>
             </div>
           </div>
         </section>
       </div>
     `;
-
   }
 
   /* ==========================================================================
@@ -247,25 +245,24 @@ class AppController {
     if (!sidebar) {
       this.viewTarget.innerHTML = `
         <div class="portal-wrapper">
-          <!-- Translucent left docked floating sidebar -->
+          <!-- Left Docked Sidebar -->
           <aside class="portal-sidebar" id="sidebar">
             <div class="portal-sidebar-brand">
-              <i class="fa-solid fa-graduation-cap" style="font-size: 20px; color: var(--primary-color);"></i>
-              <span>Academix</span>
+              <span>Campus<span>.OS</span></span>
             </div>
             
             <nav class="portal-sidebar-menu">
               <a href="#/dashboard" class="portal-menu-item" id="nav-dashboard">
                 <i class="fa-solid fa-chart-pie"></i>
-                <span>Dashboard</span>
+                <span>Overview</span>
               </a>
               <a href="#/students" class="portal-menu-item" id="nav-students">
                 <i class="fa-solid fa-users"></i>
-                <span>Students</span>
+                <span>Catalog</span>
               </a>
               <a href="#/students/add" class="portal-menu-item" id="nav-add-student">
                 <i class="fa-solid fa-user-plus"></i>
-                <span>Enroll Student</span>
+                <span>Register</span>
               </a>
             </nav>
             
@@ -278,14 +275,14 @@ class AppController {
             </div>
           </aside>
 
-          <!-- Main portal area -->
+          <!-- Main Workspace -->
           <main class="portal-main">
             <header class="portal-header">
-              <button class="portal-sidebar-toggle" id="sidebar-toggle">
+              <button class="portal-sidebar-toggle" id="sidebar-toggle" aria-label="Toggle Navigation">
                 <i class="fa-solid fa-bars"></i>
               </button>
               <div class="portal-header-title">
-                <h1 id="portal-title">Dashboard</h1>
+                <h1 id="portal-title">Overview</h1>
               </div>
               <div class="portal-header-user">
                 <div class="portal-user-avatar">AD</div>
@@ -325,7 +322,7 @@ class AppController {
     portalContent.innerHTML = `
       <div class="view-loader">
         <i class="fa-solid fa-circle-notch fa-spin"></i>
-        <span>Synchronizing data...</span>
+        <span>Loading secure workspace...</span>
       </div>
     `;
 
@@ -388,39 +385,18 @@ class AppController {
       const otherCount = totalCount - csCount;
 
       target.innerHTML = `
-        <!-- Row 1: KPI Grid -->
-        <div class="metrics-grid">
-          <div class="glassmorphic-card kpi-card">
-            <div class="kpi-header">
-              <span>TOTAL REGISTRATIONS</span>
-              <i class="fa-solid fa-graduation-cap"></i>
-            </div>
-            <span class="kpi-value">${totalCount}</span>
-            <div class="kpi-footer">Active student database rows</div>
-          </div>
-          <div class="glassmorphic-card kpi-card">
-            <div class="kpi-header">
-              <span>CS & IT SPECIALISTS</span>
-              <i class="fa-solid fa-laptop-code"></i>
-            </div>
-            <span class="kpi-value">${csCount}</span>
-            <div class="kpi-footer"><span>${totalCount > 0 ? Math.round((csCount/totalCount)*100) : 0}%</span> of total database</div>
-          </div>
-          <div class="glassmorphic-card kpi-card">
-            <div class="kpi-header">
-              <span>OTHER MAJORS</span>
-              <i class="fa-solid fa-gears"></i>
-            </div>
-            <span class="kpi-value">${otherCount}</span>
-            <div class="kpi-footer">Engineering, Science, Arts</div>
-          </div>
+        <!-- Visual Narrative Section -->
+        <div class="narrative-summary-box">
+          <p class="narrative-summary-text">
+            Currently orchestrating <strong>${totalCount}</strong> active student profiles inside the <span class="accent-highlight">Campus.OS</span> directory database. Within this directory, <strong>${csCount}</strong> scholars specialize in Computer Science & Information Technology majors, with <strong>${otherCount}</strong> allocations mapped to other academic disciplines.
+          </p>
         </div>
 
-        <!-- Row 2: Charts Grid -->
+        <!-- Charts Grid -->
         <div class="dashboard-visuals-grid">
           <div class="glassmorphic-card">
             <div class="chart-card-header">
-              <h2>Enrollment Growth Trend</h2>
+              <h2>Enrollment growth trends</h2>
             </div>
             <div class="chart-container" style="height: 250px;">
               <canvas id="growthLineChart"></canvas>
@@ -429,7 +405,7 @@ class AppController {
           
           <div class="glassmorphic-card">
             <div class="chart-card-header">
-              <h2>Department Allocation</h2>
+              <h2>Department allocations</h2>
             </div>
             <div class="chart-container" style="height: 250px; display: flex; align-items: center; justify-content: center;">
               <canvas id="deptDoughnutChart" style="max-height: 220px; max-width: 220px;"></canvas>
@@ -500,10 +476,22 @@ class AppController {
     const sortedDates = Object.keys(dateGroups).slice(-7); // Last 7 unique entry dates
     const growthData = sortedDates.map(date => dateGroups[date]);
 
+    // Dynamic theme colors
+    const isLightMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+    const accentColor = isLightMode ? '#b45309' : '#e2b76c';
+    const gridColor = isLightMode ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.03)';
+    const textColor = isLightMode ? '#52525b' : '#a1a1aa';
+    const pointBorderColor = isLightMode ? '#ffffff' : '#0a0a0a';
+    
     // Gradient fills
     const lineGradient = lineCtx.getContext('2d').createLinearGradient(0, 0, 0, 250);
-    lineGradient.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
-    lineGradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+    if (isLightMode) {
+      lineGradient.addColorStop(0, 'rgba(180, 83, 9, 0.12)');
+      lineGradient.addColorStop(1, 'rgba(180, 83, 9, 0.0)');
+    } else {
+      lineGradient.addColorStop(0, 'rgba(226, 183, 108, 0.12)');
+      lineGradient.addColorStop(1, 'rgba(226, 183, 108, 0.0)');
+    }
 
     this.growthChartInstance = new Chart(lineCtx, {
       type: 'line',
@@ -512,13 +500,13 @@ class AppController {
         datasets: [{
           label: 'Students Enrolled',
           data: growthData.length > 0 ? growthData : [0],
-          borderColor: '#6366f1',
-          borderWidth: 3,
+          borderColor: accentColor,
+          borderWidth: 2,
           backgroundColor: lineGradient,
           fill: true,
-          tension: 0.4,
-          pointBackgroundColor: '#8b5cf6',
-          pointBorderColor: '#ffffff',
+          tension: 0.3,
+          pointBackgroundColor: accentColor,
+          pointBorderColor: pointBorderColor,
           pointRadius: 4
         }]
       },
@@ -529,8 +517,8 @@ class AppController {
           legend: { display: false }
         },
         scales: {
-          x: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#9ca3af' } },
-          y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#9ca3af', stepSize: 1 } }
+          x: { grid: { color: gridColor }, ticks: { color: textColor, font: { family: 'Inter', size: 10 } } },
+          y: { grid: { color: gridColor }, ticks: { color: textColor, font: { family: 'Inter', size: 10 }, stepSize: 1 } }
         }
       }
     });
@@ -543,6 +531,9 @@ class AppController {
 
     const deptLabels = Object.keys(deptAllocations);
     const deptData = deptLabels.map(dept => deptAllocations[dept]);
+    const deptColors = isLightMode
+      ? ['#b45309', '#52525b', '#a1a1aa', '#d4d4d8', '#e4e4e7', '#f4f4f5']
+      : ['#e2b76c', '#a1a1aa', '#52525b', '#3f3f46', '#27272a', '#18181b'];
 
     this.deptChartInstance = new Chart(doughnutCtx, {
       type: 'doughnut',
@@ -550,9 +541,9 @@ class AppController {
         labels: deptLabels.length > 0 ? deptLabels : ['Empty'],
         datasets: [{
           data: deptData.length > 0 ? deptData : [1],
-          backgroundColor: ['#6366f1', '#a855f7', '#10b981', '#f59e0b', '#3b82f6', '#f43f5e'],
+          backgroundColor: deptColors,
           borderWidth: 1,
-          borderColor: 'rgba(255, 255, 255, 0.1)'
+          borderColor: isLightMode ? '#ffffff' : '#0d0d0d'
         }]
       },
       options: {
@@ -561,10 +552,10 @@ class AppController {
         plugins: {
           legend: {
             position: 'bottom',
-            labels: { color: '#9ca3af', font: { size: 10 } }
+            labels: { color: textColor, font: { family: 'Inter', size: 10 } }
           }
         },
-        cutout: '65%'
+        cutout: '75%'
       }
     });
   }
@@ -741,27 +732,18 @@ class AppController {
       const initials = student.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
       return `
         <div class="profile-card glassmorphic-card" data-id="${student.id}">
-          <div class="profile-card-header">
-            <div class="profile-card-avatar">${initials}</div>
-            <div class="profile-card-info">
-              <span class="profile-card-name">${student.name}</span>
-              <span class="profile-card-id">ID: #${student.id}</span>
-            </div>
+          <div class="profile-card-top">
+            <span class="profile-card-meta">ID / #${student.id}</span>
+            <span class="profile-card-initials">${initials}</span>
           </div>
           
-          <div class="profile-card-details">
-            <div class="detail-item">
-              <span class="detail-label">Email</span>
-              <span class="detail-value" style="font-size:12px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${student.email}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">Major</span>
-              <span class="detail-value">${student.department}</span>
-            </div>
+          <div class="profile-card-mid">
+            <h3 class="profile-card-name">${student.name}</h3>
+            <span class="profile-card-email">${student.email}</span>
           </div>
 
           <div class="profile-card-footer">
-            <span class="profile-badge dept">${student.department.substring(0, 15)}${student.department.length > 15 ? '...' : ''}</span>
+            <span class="profile-badge dept">${student.department}</span>
             <span class="profile-badge year">Year ${student.year}</span>
           </div>
         </div>
@@ -857,38 +839,40 @@ class AppController {
     });
 
     drawerBody.innerHTML = `
-      <div class="drawer-profile-summary">
-        <div class="drawer-profile-avatar">${initials}</div>
-        <h3 class="drawer-profile-name">${student.name}</h3>
-        <span class="drawer-profile-email">${student.email}</span>
-      </div>
+      <div class="drawer-product-spec">
+        <div class="spec-header">
+          <span class="spec-id">FILE / #${student.id}</span>
+          <span class="spec-monogram">${initials}</span>
+        </div>
+        
+        <div class="spec-title-area">
+          <h2 class="spec-title">${student.name}</h2>
+          <span class="spec-subtitle">${student.email}</span>
+        </div>
+        
+        <div class="spec-grid">
+          <div class="spec-row">
+            <span class="spec-label">DEPARTMENT / MAJOR</span>
+            <span class="spec-value">${student.department}</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">ACADEMIC LEVEL</span>
+            <span class="spec-value">YEAR ${student.year}</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">REGISTRATION DATE</span>
+            <span class="spec-value">${formattedDate}</span>
+          </div>
+        </div>
 
-      <div class="drawer-info-grid">
-        <div class="drawer-info-row">
-          <span class="drawer-info-label">Student ID</span>
-          <span class="drawer-info-value">#${student.id}</span>
+        <div class="spec-actions">
+          <button class="btn btn-secondary btn-sm" id="drawer-btn-edit" data-id="${student.id}">
+            <i class="fa-solid fa-pen-to-square"></i> EDIT RECORD
+          </button>
+          <button class="btn btn-danger btn-sm" id="drawer-btn-delete" data-id="${student.id}">
+            <i class="fa-solid fa-trash-can"></i> DISMISS RECORD
+          </button>
         </div>
-        <div class="drawer-info-row">
-          <span class="drawer-info-label">Major/Department</span>
-          <span class="drawer-info-value">${student.department}</span>
-        </div>
-        <div class="drawer-info-row">
-          <span class="drawer-info-label">Academic Year</span>
-          <span class="drawer-info-value">Year ${student.year}</span>
-        </div>
-        <div class="drawer-info-row">
-          <span class="drawer-info-label">Enrollment Date</span>
-          <span class="drawer-info-value">${formattedDate}</span>
-        </div>
-      </div>
-
-      <div class="drawer-actions-box">
-        <button class="btn btn-secondary btn-sm" id="drawer-btn-edit" data-id="${student.id}">
-          <i class="fa-solid fa-pen-to-square"></i> Edit Profile
-        </button>
-        <button class="btn btn-danger btn-sm" id="drawer-btn-delete" data-id="${student.id}">
-          <i class="fa-solid fa-trash-can"></i> Delete
-        </button>
       </div>
     `;
 
