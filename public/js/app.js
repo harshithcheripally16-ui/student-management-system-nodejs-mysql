@@ -28,8 +28,36 @@ class AppController {
     this.activeToasts = new Set();
     this.isLoadingRoute = false;
     
+    // Authentication State
+    this.currentUser = null;
+    this.isAuthenticating = true;
+    
     this.initDrawer();
     this.initModals();
+    
+    // Check local session before initiating routes
+    this.checkSession().then(() => {
+      this.isAuthenticating = false;
+      this.handleRoute();
+    });
+  }
+
+  /**
+   * Check for cached credentials to restore user session
+   */
+  async checkSession() {
+    const token = localStorage.getItem('campusos_token') || sessionStorage.getItem('campusos_token');
+    if (token) {
+      try {
+        const res = await window.studentApi.getMe();
+        if (res && res.success) {
+          this.currentUser = res.data;
+        }
+      } catch (err) {
+        localStorage.removeItem('campusos_token');
+        sessionStorage.removeItem('campusos_token');
+      }
+    }
   }
 
   /**
@@ -133,14 +161,20 @@ class AppController {
 
   /**
    * Router Dispatcher
-   * Renders Landing experience OR wraps inside Portal layouts based on URL hash routing.
+   * Renders Landing experience, Auth views OR wraps inside Portal layouts based on URL hash routing.
    */
   async handleRoute() {
+    if (this.isAuthenticating) return; // Prevent early routing before session load
     if (this.isLoadingRoute) return;
     this.isLoadingRoute = true;
     try {
       this.closeDrawer();
-      const hash = window.location.hash || '#/landing';
+      let hash = window.location.hash || '#/landing';
+
+      // Parse params for dynamic routes
+      const parts = hash.split('/');
+      const isVerifyEmail = hash.startsWith('#/verify-email/');
+      const isResetPassword = hash.startsWith('#/reset-password/');
 
       // Automatically close mobile sidebar on navigation change
       const sidebar = document.getElementById('sidebar');
@@ -148,8 +182,56 @@ class AppController {
         sidebar.classList.remove('active');
       }
 
+      // Guest routes list
+      const guestRoutes = ['#/login', '#/register', '#/forgot-password', '#/landing', '#/'];
+
+      // Redirect logic based on Auth status
+      if (!this.currentUser) {
+        // Logged out redirects: if accessing protected views, send to login
+        if (!guestRoutes.includes(hash) && !isVerifyEmail && !isResetPassword) {
+          window.location.hash = '#/login';
+          return;
+        }
+      } else {
+        // Logged in redirects: if accessing login/register, send to dashboard
+        if (hash === '#/login' || hash === '#/register' || hash === '#/forgot-password') {
+          window.location.hash = '#/dashboard';
+          return;
+        }
+      }
+
+      // Render Auth Pages
+      if (hash === '#/login') {
+        this.renderLoginPage();
+        return;
+      }
+      if (hash === '#/register') {
+        this.renderRegisterPage();
+        return;
+      }
+      if (hash === '#/forgot-password') {
+        this.renderForgotPasswordPage();
+        return;
+      }
+      if (isVerifyEmail) {
+        const token = parts[parts.length - 1];
+        await this.renderVerifyEmailPage(token);
+        return;
+      }
+      if (isResetPassword) {
+        const token = parts[parts.length - 1];
+        this.renderResetPasswordPage(token);
+        return;
+      }
+
+      // Handle logout
+      if (hash === '#/logout') {
+        await this.logout();
+        return;
+      }
+
       // 1. SaaS Landing Page layout
-      if (hash === '#/landing' || hash === '') {
+      if (hash === '#/landing' || hash === '' || hash === '#/') {
         await this.renderLandingPage();
         return;
       }
@@ -173,7 +255,13 @@ class AppController {
           <div class="brand">
             <span class="brand-text">Campus<span>.OS</span></span>
           </div>
-          <a href="#/dashboard" class="btn btn-primary btn-sm">Launch Platform</a>
+          <div class="landing-nav-actions" style="display: flex; gap: 20px; align-items: center;">
+            ${this.currentUser 
+              ? `<a href="#/dashboard" class="btn btn-primary btn-sm">Launch Platform</a>`
+              : `<a href="#/login" class="auth-link" style="font-size: 13.5px; font-weight: 500;">Sign In</a>
+                 <a href="#/register" class="btn btn-primary btn-sm">Get Started</a>`
+            }
+          </div>
         </header>
 
         <!-- Hero Section -->
@@ -264,12 +352,20 @@ class AppController {
                 <i class="fa-solid fa-user-plus"></i>
                 <span>Register</span>
               </a>
+              <a href="#/profile" class="portal-menu-item" id="nav-profile">
+                <i class="fa-solid fa-user-gear"></i>
+                <span>Profile</span>
+              </a>
+              <a href="#/logout" class="portal-menu-item" id="nav-logout">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Logout</span>
+              </a>
             </nav>
             
             <div class="portal-sidebar-footer">
               <div class="status">
-                <span class="status-indicator"></span>
-                <span>Active Pool</span>
+                <span class="status-indicator ${this.currentUser?.is_verified ? 'verified' : 'unverified'}"></span>
+                <span>${this.currentUser?.is_verified ? 'Verified Pool' : 'Unverified Pool'}</span>
               </div>
               <div class="version">v1.2.0</div>
             </div>
@@ -284,11 +380,17 @@ class AppController {
               <div class="portal-header-title">
                 <h1 id="portal-title">Overview</h1>
               </div>
-              <div class="portal-header-user">
-                <div class="portal-user-avatar">AD</div>
+              <div class="portal-header-user" style="cursor: pointer;" onclick="window.location.hash = '#/profile'">
+                <div class="portal-user-avatar" id="header-avatar">${this.getInitials(this.currentUser?.name)}</div>
                 <div class="portal-user-details">
-                  <span class="portal-user-name">Delivery Admin</span>
-                  <span class="portal-user-role">System Administrator</span>
+                  <span class="portal-user-name">${this.currentUser ? this.currentUser.name : 'User'}</span>
+                  <span class="portal-user-role" style="display: flex; align-items: center; gap: 6px;">
+                    ${this.currentUser ? this.currentUser.email : ''}
+                    ${this.currentUser?.is_verified 
+                      ? '<span class="sidebar-user-verified-badge verified" style="margin-top: 0; padding: 1px 4px;"><i class="fa-solid fa-circle-check"></i></span>'
+                      : '<span class="sidebar-user-verified-badge unverified" style="margin-top: 0; padding: 1px 4px;"><i class="fa-solid fa-circle-xmark"></i></span>'
+                    }
+                  </span>
                 </div>
               </div>
             </header>
@@ -318,6 +420,48 @@ class AppController {
     if (this.growthChartInstance) this.growthChartInstance.destroy();
     if (this.deptChartInstance) this.deptChartInstance.destroy();
 
+    // Render verification warning banner if user is unverified
+    const isUnverified = this.currentUser && !this.currentUser.is_verified;
+    const bannerContainerId = 'portal-warning-banner-container';
+    let bannerContainer = document.getElementById(bannerContainerId);
+    
+    if (isUnverified) {
+      if (!bannerContainer) {
+        bannerContainer = document.createElement('div');
+        bannerContainer.id = bannerContainerId;
+        portalContent.parentNode.insertBefore(bannerContainer, portalContent);
+      }
+      bannerContainer.innerHTML = `
+        <div class="verification-warning-banner" style="margin: 0 32px 24px 32px;">
+          <div class="verification-banner-content">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>Your email address (<strong>${this.currentUser.email}</strong>) is not verified. Please verify your email to unlock all administrative features.</span>
+          </div>
+          <button class="btn-banner-action" id="btn-banner-resend">Resend Verification</button>
+        </div>
+      `;
+      const btnResend = document.getElementById('btn-banner-resend');
+      if (btnResend) {
+        btnResend.addEventListener('click', async () => {
+          try {
+            btnResend.disabled = true;
+            btnResend.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Resending...';
+            await window.studentApi.resendVerification(this.currentUser.email);
+            this.showToast('Verification link resent. Please check your email.');
+          } catch (err) {
+            this.showToast(err.message, 'error');
+          } finally {
+            btnResend.disabled = false;
+            btnResend.innerHTML = 'Resend Verification';
+          }
+        });
+      }
+    } else {
+      if (bannerContainer) {
+        bannerContainer.remove();
+      }
+    }
+
     // Loader
     portalContent.innerHTML = `
       <div class="view-loader">
@@ -340,6 +484,9 @@ class AppController {
       const parts = activeHash.split('/');
       const id = parseInt(parts[parts.length - 1], 10);
       await this.loadAndRenderEditStudentForm(portalContent, id);
+    } else if (activeHash === '#/profile') {
+      portalTitle.textContent = 'Profile Settings';
+      this.renderProfilePage(portalContent);
     }
   }
 
@@ -354,14 +501,17 @@ class AppController {
     const dashboardItem = document.getElementById('nav-dashboard');
     const studentsItem = document.getElementById('nav-students');
     const addItem = document.getElementById('nav-add-student');
+    const profileItem = document.getElementById('nav-profile');
 
-    if (dashboardItem && studentsItem && addItem) {
+    if (dashboardItem && studentsItem && addItem && profileItem) {
       if (hash === '#/dashboard') {
         dashboardItem.classList.add('active');
       } else if (hash === '#/students') {
         studentsItem.classList.add('active');
       } else if (hash === '#/students/add') {
         addItem.classList.add('active');
+      } else if (hash === '#/profile') {
+        profileItem.classList.add('active');
       }
     }
   }
@@ -371,6 +521,10 @@ class AppController {
      ========================================================================== */
 
   async loadAndRenderDashboard(target) {
+    if (this.currentUser && !this.currentUser.is_verified) {
+      this.renderUnverifiedLock(target);
+      return;
+    }
     try {
       await this.refreshCache();
 
@@ -565,6 +719,10 @@ class AppController {
      ========================================================================== */
 
   async loadAndRenderStudentsGrid(target) {
+    if (this.currentUser && !this.currentUser.is_verified) {
+      this.renderUnverifiedLock(target);
+      return;
+    }
     try {
       this.closeDrawer();
       await this.refreshCache();
@@ -948,6 +1106,10 @@ class AppController {
      ========================================================================== */
 
   renderAddStudentForm(target) {
+    if (this.currentUser && !this.currentUser.is_verified) {
+      this.renderUnverifiedLock(target);
+      return;
+    }
     target.innerHTML = `
       <div class="form-wrapper">
         <div class="form-title-box">
@@ -1057,6 +1219,10 @@ class AppController {
   }
 
   async loadAndRenderEditStudentForm(target, id) {
+    if (this.currentUser && !this.currentUser.is_verified) {
+      this.renderUnverifiedLock(target);
+      return;
+    }
     try {
       const response = await window.studentApi.getById(id);
       const student = response.data;
@@ -1932,6 +2098,556 @@ class AppController {
         this.renderAddStudentForm(target);
       });
     }
+  }
+
+  /* ==========================================================================
+     Authentication Views & Handlers
+     ========================================================================== */
+
+  renderUnverifiedLock(target) {
+    target.innerHTML = `
+      <div style="text-align: center; padding: 80px 24px; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; animation: fadeIn var(--transition-slow) ease;">
+        <div class="verification-status-icon error">
+          <i class="fa-solid fa-lock"></i>
+        </div>
+        <h2 class="verification-status-title">Workspace Locked</h2>
+        <p class="verification-status-desc">
+          Email verification is required to access directory listings, metrics, and registration panels. Please click the button below to resend the activation link to your registered email.
+        </p>
+        <button class="btn btn-primary" id="btn-lock-resend" style="padding: 12px 24px; font-size: 13px;">Resend Verification Link</button>
+      </div>
+    `;
+    const btnResend = document.getElementById('btn-lock-resend');
+    if (btnResend) {
+      btnResend.addEventListener('click', async () => {
+        try {
+          btnResend.disabled = true;
+          btnResend.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Resending link...';
+          await window.studentApi.resendVerification(this.currentUser.email);
+          this.showToast('Verification email resent. Please check your inbox.');
+        } catch (err) {
+          this.showToast(err.message, 'error');
+        } finally {
+          btnResend.disabled = false;
+          btnResend.innerHTML = 'Resend Verification Link';
+        }
+      });
+    }
+  }
+
+  getInitials(name) {
+    if (!name) return 'U';
+    return name.split(' ')
+      .map(part => part.charAt(0))
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  }
+
+  async logout() {
+    localStorage.removeItem('campusos_token');
+    sessionStorage.removeItem('campusos_token');
+    this.currentUser = null;
+    this.showToast('Logged out successfully.');
+    window.location.hash = '#/login';
+  }
+
+  renderLoginPage() {
+    this.viewTarget.innerHTML = `
+      <div class="auth-wrapper">
+        <div class="auth-card">
+          <div class="auth-header">
+            <div class="auth-brand">Campus<span>.OS</span></div>
+            <h2 class="auth-title">Welcome Back</h2>
+            <p class="auth-subtitle">Sign in to your administrative registry workspace</p>
+          </div>
+          
+          <form id="login-form">
+            <div class="form-group active-section-focus" style="margin-bottom: 20px;">
+              <label class="input-label" for="login-email">Email Address</label>
+              <input type="email" class="input-field" id="login-email" required placeholder="admin@campusos.edu">
+              <div id="login-email-badge" class="validation-badge" style="display:none;"></div>
+            </div>
+            
+            <div class="form-group active-section-focus" style="margin-bottom: 24px;">
+              <label class="input-label" for="login-password">Password</label>
+              <div class="password-input-wrapper">
+                <input type="password" class="input-field" id="login-password" required placeholder="Enter password">
+                <button type="button" class="btn-toggle-password" id="btn-toggle-login-pass">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+              </div>
+            </div>
+            
+            <div class="auth-options">
+              <label class="checkbox-label">
+                <input type="checkbox" id="login-remember">
+                <span>Remember me</span>
+              </label>
+              <a href="#/forgot-password" class="auth-link">Forgot password?</a>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" id="btn-login-submit" style="width: 100%; padding: 14px; justify-content: center;">
+              Sign In to Dashboard
+            </button>
+          </form>
+          
+          <div class="auth-footer">
+            Don't have an account? <a href="#/register" class="auth-link">Register here</a>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Toggle password visibility
+    const passInput = document.getElementById('login-password');
+    const toggleBtn = document.getElementById('btn-toggle-login-pass');
+    toggleBtn.addEventListener('click', () => {
+      if (passInput.type === 'password') {
+        passInput.type = 'text';
+        toggleBtn.innerHTML = '<i class="fa-solid fa-eye-slash"></i>';
+      } else {
+        passInput.type = 'password';
+        toggleBtn.innerHTML = '<i class="fa-solid fa-eye"></i>';
+      }
+    });
+
+    // Handle Form Submission
+    const form = document.getElementById('login-form');
+    const btnSubmit = document.getElementById('btn-login-submit');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value.trim();
+      const password = passInput.value;
+      const rememberMe = document.getElementById('login-remember').checked;
+
+      try {
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Authenticating...';
+
+        const res = await window.studentApi.login({ email, password, rememberMe });
+        
+        if (res.success) {
+          if (rememberMe) {
+            localStorage.setItem('campusos_token', res.token);
+          } else {
+            sessionStorage.setItem('campusos_token', res.token);
+          }
+          this.currentUser = res.data;
+          this.showToast('Login successful. Welcome back!');
+          window.location.hash = '#/dashboard';
+        }
+      } catch (err) {
+        this.showToast(err.message, 'error');
+      } finally {
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = 'Sign In to Dashboard';
+      }
+    });
+  }
+
+  renderRegisterPage() {
+    this.viewTarget.innerHTML = `
+      <div class="auth-wrapper">
+        <div class="auth-card">
+          <div class="auth-header">
+            <div class="auth-brand">Campus<span>.OS</span></div>
+            <h2 class="auth-title">Create Account</h2>
+            <p class="auth-subtitle">Register a new administrative console profile</p>
+          </div>
+          
+          <form id="register-form">
+            <div class="form-group active-section-focus" style="margin-bottom: 20px;">
+              <label class="input-label" for="reg-name">Full Name</label>
+              <input type="text" class="input-field" id="reg-name" required placeholder="John Doe">
+            </div>
+            
+            <div class="form-group active-section-focus" style="margin-bottom: 20px;">
+              <label class="input-label" for="reg-email">Email Address</label>
+              <input type="email" class="input-field" id="reg-email" required placeholder="admin@campusos.edu">
+              <div id="reg-email-badge" class="validation-badge" style="margin-top: 6px;"></div>
+            </div>
+            
+            <div class="form-group active-section-focus" style="margin-bottom: 24px;">
+              <label class="input-label" for="reg-password">Password</label>
+              <div class="password-input-wrapper">
+                <input type="password" class="input-field" id="reg-password" required placeholder="Minimum 6 characters">
+                <button type="button" class="btn-toggle-password" id="btn-toggle-reg-pass">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+              </div>
+              <div class="password-strength-container" id="strength-container" style="display:none;">
+                <div class="password-strength-bar">
+                  <div class="password-strength-progress" id="strength-bar"></div>
+                </div>
+                <div class="password-strength-text">Password Strength: <span id="strength-label">Weak</span></div>
+              </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" id="btn-reg-submit" style="width: 100%; padding: 14px; justify-content: center;">
+              Register Account
+            </button>
+          </form>
+          
+          <div class="auth-footer">
+            Already have an account? <a href="#/login" class="auth-link">Sign in instead</a>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const nameInput = document.getElementById('reg-name');
+    const emailInput = document.getElementById('reg-email');
+    const passInput = document.getElementById('reg-password');
+    const toggleBtn = document.getElementById('btn-toggle-reg-pass');
+    const strengthContainer = document.getElementById('strength-container');
+    const strengthBar = document.getElementById('strength-bar');
+    const strengthLabel = document.getElementById('strength-label');
+    const emailBadge = document.getElementById('reg-email-badge');
+
+    // Toggle password visibility
+    toggleBtn.addEventListener('click', () => {
+      if (passInput.type === 'password') {
+        passInput.type = 'text';
+        toggleBtn.innerHTML = '<i class="fa-solid fa-eye-slash"></i>';
+      } else {
+        passInput.type = 'password';
+        toggleBtn.innerHTML = '<i class="fa-solid fa-eye"></i>';
+      }
+    });
+
+    // Real-time Email Validation
+    emailInput.addEventListener('input', () => {
+      const email = emailInput.value.trim();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!email) {
+        emailBadge.style.display = 'none';
+        emailInput.classList.remove('invalid');
+      } else if (emailRegex.test(email)) {
+        emailBadge.style.display = 'block';
+        emailBadge.className = 'validation-badge valid';
+        emailBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> Email format valid';
+        emailInput.classList.remove('invalid');
+      } else {
+        emailBadge.style.display = 'block';
+        emailBadge.className = 'validation-badge error';
+        emailBadge.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Invalid email format';
+        emailInput.classList.add('invalid');
+      }
+    });
+
+    // Real-time Password Strength Check
+    passInput.addEventListener('input', () => {
+      const val = passInput.value;
+      if (!val) {
+        strengthContainer.style.display = 'none';
+        return;
+      }
+      strengthContainer.style.display = 'block';
+
+      let score = 0;
+      if (val.length >= 6) score++;
+      if (val.length >= 10) score++;
+      if (/[A-Z]/.test(val)) score++;
+      if (/[0-9]/.test(val)) score++;
+      if (/[^A-Za-z0-9]/.test(val)) score++;
+
+      if (score <= 1) {
+        strengthBar.style.width = '33%';
+        strengthBar.style.backgroundColor = '#ef4444'; // Red
+        strengthLabel.textContent = 'Weak';
+        strengthLabel.style.color = '#ef4444';
+      } else if (score <= 3) {
+        strengthBar.style.width = '66%';
+        strengthBar.style.backgroundColor = '#f59e0b'; // Amber
+        strengthLabel.textContent = 'Medium';
+        strengthLabel.style.color = '#f59e0b';
+      } else {
+        strengthBar.style.width = '100%';
+        strengthBar.style.backgroundColor = '#10b981'; // Green
+        strengthLabel.textContent = 'Strong';
+        strengthLabel.style.color = '#10b981';
+      }
+    });
+
+    // Form Submit
+    const form = document.getElementById('register-form');
+    const btnSubmit = document.getElementById('btn-reg-submit');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = nameInput.value.trim();
+      const email = emailInput.value.trim();
+      const password = passInput.value;
+
+      try {
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Provisioning account...';
+
+        const res = await window.studentApi.register({ name, email, password });
+        if (res.success) {
+          this.showToast('Registration successful! Verification email sent.');
+          window.location.hash = '#/login';
+        }
+      } catch (err) {
+        this.showToast(err.message, 'error');
+      } finally {
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = 'Register Account';
+      }
+    });
+  }
+
+  renderForgotPasswordPage() {
+    this.viewTarget.innerHTML = `
+      <div class="auth-wrapper">
+        <div class="auth-card">
+          <div class="auth-header">
+            <div class="auth-brand">Campus<span>.OS</span></div>
+            <h2 class="auth-title">Recover Password</h2>
+            <p class="auth-subtitle">Request an authentication reset transmission link</p>
+          </div>
+          
+          <form id="forgot-form">
+            <div class="form-group active-section-focus" style="margin-bottom: 24px;">
+              <label class="input-label" for="forgot-email">Email Address</label>
+              <input type="email" class="input-field" id="forgot-email" required placeholder="admin@campusos.edu">
+            </div>
+            
+            <button type="submit" class="btn btn-primary" id="btn-forgot-submit" style="width: 100%; padding: 14px; justify-content: center;">
+              Send Recovery Link
+            </button>
+          </form>
+          
+          <div class="auth-footer">
+            Remembered your credentials? <a href="#/login" class="auth-link">Sign in here</a>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const form = document.getElementById('forgot-form');
+    const btnSubmit = document.getElementById('btn-forgot-submit');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('forgot-email').value.trim();
+
+      try {
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Triggering recovery...';
+
+        const res = await window.studentApi.forgotPassword(email);
+        if (res.success) {
+          this.showToast('Password reset email recovery triggered.');
+          document.getElementById('forgot-form').innerHTML = `
+            <div style="text-align: center; margin: 24px 0; color: var(--text-main); font-family: var(--font-ui); font-size: 14px; line-height:1.6;">
+              <div class="verification-status-icon success" style="width:48px; height:48px; font-size:20px; margin-bottom:16px;">
+                <i class="fa-solid fa-paper-plane"></i>
+              </div>
+              <p>An email recovery link has been issued. Please check your inbox to update your password profile.</p>
+            </div>
+            <a href="#/login" class="btn btn-secondary" style="width: 100%; text-align: center; display: block;">Back to Login</a>
+          `;
+        }
+      } catch (err) {
+        this.showToast(err.message, 'error');
+      } finally {
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = 'Send Recovery Link';
+      }
+    });
+  }
+
+  renderResetPasswordPage(token) {
+    this.viewTarget.innerHTML = `
+      <div class="auth-wrapper">
+        <div class="auth-card">
+          <div class="auth-header">
+            <div class="auth-brand">Campus<span>.OS</span></div>
+            <h2 class="auth-title">Reset Password</h2>
+            <p class="auth-subtitle">Establish new credentials for administrative access</p>
+          </div>
+          
+          <form id="reset-form">
+            <div class="form-group active-section-focus" style="margin-bottom: 24px;">
+              <label class="input-label" for="reset-password">New Password</label>
+              <div class="password-input-wrapper">
+                <input type="password" class="input-field" id="reset-password" required placeholder="Minimum 6 characters">
+                <button type="button" class="btn-toggle-password" id="btn-toggle-reset-pass">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+              </div>
+              <div class="password-strength-container" id="reset-strength-container" style="display:none;">
+                <div class="password-strength-bar">
+                  <div class="password-strength-progress" id="reset-strength-bar"></div>
+                </div>
+                <div class="password-strength-text">Password Strength: <span id="reset-strength-label">Weak</span></div>
+              </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" id="btn-reset-submit" style="width: 100%; padding: 14px; justify-content: center;">
+              Apply New Password
+            </button>
+          </form>
+        </div>
+      </div>
+    `;
+
+    const passInput = document.getElementById('reset-password');
+    const toggleBtn = document.getElementById('btn-toggle-reset-pass');
+    const strengthContainer = document.getElementById('reset-strength-container');
+    const strengthBar = document.getElementById('reset-strength-bar');
+    const strengthLabel = document.getElementById('reset-strength-label');
+
+    toggleBtn.addEventListener('click', () => {
+      if (passInput.type === 'password') {
+        passInput.type = 'text';
+        toggleBtn.innerHTML = '<i class="fa-solid fa-eye-slash"></i>';
+      } else {
+        passInput.type = 'password';
+        toggleBtn.innerHTML = '<i class="fa-solid fa-eye"></i>';
+      }
+    });
+
+    passInput.addEventListener('input', () => {
+      const val = passInput.value;
+      if (!val) {
+        strengthContainer.style.display = 'none';
+        return;
+      }
+      strengthContainer.style.display = 'block';
+
+      let score = 0;
+      if (val.length >= 6) score++;
+      if (val.length >= 10) score++;
+      if (/[A-Z]/.test(val)) score++;
+      if (/[0-9]/.test(val)) score++;
+      if (/[^A-Za-z0-9]/.test(val)) score++;
+
+      if (score <= 1) {
+        strengthBar.style.width = '33%';
+        strengthBar.style.backgroundColor = '#ef4444';
+        strengthLabel.textContent = 'Weak';
+        strengthLabel.style.color = '#ef4444';
+      } else if (score <= 3) {
+        strengthBar.style.width = '66%';
+        strengthBar.style.backgroundColor = '#f59e0b';
+        strengthLabel.textContent = 'Medium';
+        strengthLabel.style.color = '#f59e0b';
+      } else {
+        strengthBar.style.width = '100%';
+        strengthBar.style.backgroundColor = '#10b981';
+        strengthLabel.textContent = 'Strong';
+        strengthLabel.style.color = '#10b981';
+      }
+    });
+
+    const form = document.getElementById('reset-form');
+    const btnSubmit = document.getElementById('btn-reset-submit');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const password = passInput.value;
+
+      try {
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving credentials...';
+
+        const res = await window.studentApi.resetPassword(token, password);
+        if (res.success) {
+          this.showToast('Password reset successful! You can now log in.');
+          window.location.hash = '#/login';
+        }
+      } catch (err) {
+        this.showToast(err.message, 'error');
+      } finally {
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = 'Apply New Password';
+      }
+    });
+  }
+
+  async renderVerifyEmailPage(token) {
+    this.viewTarget.innerHTML = `
+      <div class="auth-wrapper">
+        <div class="auth-card verification-status-card" id="verification-card">
+          <div class="verification-status-icon loading">
+            <i class="fa-solid fa-circle-notch fa-spin"></i>
+          </div>
+          <h2 class="verification-status-title">Verifying Account</h2>
+          <p class="verification-status-desc">Communicating with administrative registry to activate your credentials...</p>
+        </div>
+      </div>
+    `;
+
+    const card = document.getElementById('verification-card');
+    try {
+      // Artificial delay for smooth experience
+      await new Promise(r => setTimeout(r, 1500));
+      const res = await window.studentApi.verifyEmail(token);
+      if (res.success) {
+        if (localStorage.getItem('campusos_token') || sessionStorage.getItem('campusos_token')) {
+          await this.checkSession();
+        }
+        card.innerHTML = `
+          <div class="verification-status-icon success">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+          <h2 class="verification-status-title">Account Verified</h2>
+          <p class="verification-status-desc">
+            Your email address has been successfully verified. Administrative privileges have been activated.
+          </p>
+          <a href="#/dashboard" class="btn btn-primary" style="width: 100%; text-align: center; display: block;">Go to Dashboard</a>
+        `;
+      }
+    } catch (err) {
+      card.innerHTML = `
+        <div class="verification-status-icon error">
+          <i class="fa-solid fa-circle-xmark"></i>
+        </div>
+        <h2 class="verification-status-title">Verification Failed</h2>
+        <p class="verification-status-desc">
+          ${err.message || 'The verification link has expired, is invalid, or has already been used.'}
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <a href="#/login" class="btn btn-secondary" style="width: 100%; text-align: center; display: block;">Back to Sign In</a>
+        </div>
+      `;
+    }
+  }
+
+  renderProfilePage(target) {
+    target.innerHTML = `
+      <div class="form-wrapper" style="animation: fadeIn var(--transition-slow) ease;">
+        <div class="form-card" style="max-width: 480px; margin: 0 auto; padding: 40px;">
+          <div style="text-align: center; margin-bottom: 32px;">
+            <div class="spec-monogram" style="width: 80px; height: 80px; font-size: 32px; margin: 0 auto 16px auto; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid var(--border-glow); background-color: var(--btn-hover-bg); font-family: var(--font-display); font-weight: 700; color: var(--text-main);">
+              ${this.getInitials(this.currentUser?.name)}
+            </div>
+            <h2 style="font-family: var(--font-display); font-weight: 700; color: var(--text-main); margin: 0; font-size: 22px;">${this.currentUser ? this.currentUser.name : 'Administrative User'}</h2>
+            <p style="font-family: var(--font-ui); color: var(--text-muted); margin: 4px 0 0 0; font-size: 14px;">${this.currentUser ? this.currentUser.email : ''}</p>
+          </div>
+          
+          <div style="border-top: 1px solid var(--border-glow); border-bottom: 1px solid var(--border-glow); padding: 24px 0; margin-bottom: 32px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 16px; align-items: center;">
+              <span style="font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">Verification Status</span>
+              <span>${this.currentUser?.is_verified 
+                ? '<span class="sidebar-user-verified-badge verified" style="margin-top:0;"><i class="fa-solid fa-circle-check"></i> Verified Account</span>' 
+                : '<span class="sidebar-user-verified-badge unverified" style="margin-top:0;"><i class="fa-solid fa-circle-xmark"></i> Unverified Account</span>'}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">Joined Registry</span>
+              <span style="font-family: var(--font-ui); font-size: 13.5px; color: var(--text-main); font-weight: 500;">
+                ${this.currentUser ? new Date(this.currentUser.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : ''}
+              </span>
+            </div>
+          </div>
+          
+          <div style="display: flex; gap: 16px;">
+            <a href="#/dashboard" class="btn btn-secondary" style="flex: 1; text-align: center; justify-content: center;">Workspace Directory</a>
+            <a href="#/logout" class="btn btn-danger" style="flex: 1; text-align: center; justify-content: center; border: 1px solid rgba(239, 68, 68, 0.4); background-color: rgba(239, 68, 68, 0.05); color: #ef4444;">Sign Out</a>
+          </div>
+        </div>
+      </div>
+    `;
   }
 }
 

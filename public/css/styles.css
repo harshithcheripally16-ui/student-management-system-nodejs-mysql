@@ -1771,8 +1771,315 @@ select.input-field option {
 }
 
 /* ==========================================================================
+   Authentication Screens & Components
+   ========================================================================== */
+
+.auth-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background-color: var(--bg-main);
+  transition: background-color var(--transition-slow);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-glow);
+  border-radius: 6px;
+  padding: 48px 40px;
+  box-shadow: var(--shadow-premium);
+  transition: background-color var(--transition-slow), border-color var(--transition-slow);
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.auth-brand {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  color: var(--text-main);
+  margin-bottom: 8px;
+}
+
+.auth-brand span {
+  color: var(--primary-color);
+}
+
+.auth-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-top: 12px;
+  margin-bottom: 4px;
+}
+
+.auth-subtitle {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.password-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.btn-toggle-password {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 10px;
+  font-size: 14px;
+  transition: color var(--transition-fast);
+}
+
+.btn-toggle-password:hover {
+  color: var(--text-main);
+}
+
+.auth-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  font-size: 13px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  user-select: none;
+}
+
+.checkbox-label input {
+  accent-color: var(--primary-color);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+.auth-link {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity var(--transition-fast);
+  font-family: var(--font-ui);
+}
+
+.auth-link:hover {
+  opacity: 0.8;
+}
+
+.auth-footer {
+  text-align: center;
+  margin-top: 32px;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+}
+
+/* Password Strength Indicator */
+.password-strength-container {
+  margin-top: 8px;
+  font-family: var(--font-ui);
+}
+
+.password-strength-bar {
+  height: 4px;
+  background-color: var(--btn-hover-bg);
+  border-radius: 2px;
+  width: 100%;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.password-strength-progress {
+  height: 100%;
+  width: 0;
+  border-radius: 2px;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.password-strength-text {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.password-strength-text span {
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Verification Warning Banner */
+.verification-warning-banner {
+  background-color: rgba(180, 83, 9, 0.08);
+  border: 1px solid rgba(180, 83, 9, 0.25);
+  border-radius: 6px;
+  padding: 16px 20px;
+  margin-bottom: 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.verification-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-main);
+  font-size: 13.5px;
+  font-family: var(--font-ui);
+}
+
+.verification-banner-content i {
+  color: var(--primary-color);
+  font-size: 18px;
+}
+
+.verification-banner-content strong {
+  color: var(--primary-color);
+}
+
+.btn-banner-action {
+  background-color: var(--primary-color);
+  color: #0d0d0d;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn-banner-action:hover {
+  opacity: 0.9;
+}
+
+.btn-banner-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Email Verification Status Pages */
+.verification-status-card {
+  text-align: center;
+}
+
+.verification-status-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px auto;
+  font-size: 28px;
+}
+
+.verification-status-icon.success {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: rgb(16, 185, 129);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.verification-status-icon.error {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: rgb(239, 68, 68);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.verification-status-icon.loading {
+  background-color: rgba(197, 168, 128, 0.1);
+  color: var(--primary-color);
+  border: 1px solid rgba(197, 168, 128, 0.2);
+}
+
+.verification-status-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 12px;
+}
+
+.verification-status-desc {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 32px;
+}
+
+/* Sidebar user details profile status badge */
+.sidebar-user-verified-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+.sidebar-user-verified-badge.verified {
+  background-color: rgba(16, 185, 129, 0.08);
+  color: rgb(16, 185, 129);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.sidebar-user-verified-badge.unverified {
+  background-color: rgba(239, 68, 68, 0.08);
+  color: rgb(239, 68, 68);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* Light mode overrides for Auth Screens */
+body.light-theme {
+  --auth-bg-muted: rgba(0, 0, 0, 0.03);
+}
+
+body.light-theme .auth-card {
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
+}
+
+body.light-theme .checkbox-label {
+  color: #52525b;
+}
+
+body.light-theme .verification-warning-banner {
+  background-color: rgba(217, 119, 6, 0.05);
+  border-color: rgba(217, 119, 6, 0.15);
+}
+
+/* ==========================================================================
    Responsive Adaptation & Media Queries
    ========================================================================== */
+
 
 @media (max-width: 1024px) {
   .dashboard-visuals-grid {

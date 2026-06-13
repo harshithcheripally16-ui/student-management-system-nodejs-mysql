@@ -52,10 +52,11 @@ async function testConnection() {
     connection = await pool.getConnection();
     console.log(`[Database] Connection pool established successfully with ${poolConfig.host}:${poolConfig.port}`);
 
-    // 3. Auto-initialize tables if the 'students' table does not exist
-    const [tables] = await connection.query(`SHOW TABLES LIKE 'students'`);
-    if (tables.length === 0) {
-      console.log('[Database] "students" table not found. Auto-initializing schema from db/schema.sql...');
+    // 3. Auto-initialize tables if the 'students' or 'users' tables do not exist
+    const [studentsTable] = await connection.query(`SHOW TABLES LIKE 'students'`);
+    const [usersTable] = await connection.query(`SHOW TABLES LIKE 'users'`);
+    if (studentsTable.length === 0 || usersTable.length === 0) {
+      console.log('[Database] Missing database tables. Auto-initializing schema from db/schema.sql...');
       const schemaPath = path.join(__dirname, '../db/schema.sql');
       const schemaSql = await fs.readFile(schemaPath, 'utf8');
 

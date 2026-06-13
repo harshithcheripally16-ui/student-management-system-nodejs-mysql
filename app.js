@@ -10,6 +10,8 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const path = require('path');
 const studentRoutes = require('./routes/studentRoutes');
+const authRoutes = require('./routes/authRoutes');
+const { requireAuth, requireVerified } = require('./middlewares/authMiddleware');
 const errorHandler = require('./middlewares/errorMiddleware');
 
 const app = express();
@@ -48,8 +50,12 @@ app.use(express.urlencoded({ extended: true }));
 // Serve frontend static assets from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Register student REST API routes
-app.use('/students', studentRoutes);
+// Register auth REST API routes
+app.use('/auth', authRoutes);
+
+// Register student REST API routes (protected)
+app.use('/students', requireAuth, requireVerified, studentRoutes);
+
 
 // Catch-all route for non-existent API endpoints (404 Handler)
 app.use('/api/*', (req, res, next) => {

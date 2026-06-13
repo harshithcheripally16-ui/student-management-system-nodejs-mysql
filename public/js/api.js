@@ -49,10 +49,16 @@ class StudentAPI {
    */
   async _request(url, options = {}) {
     try {
+      // Automatically load JWT token from storage and inject Bearer header
+      const token = localStorage.getItem('campusos_token') || sessionStorage.getItem('campusos_token');
+      if (token) {
+        options.headers = options.headers || {};
+        options.headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const res = await fetch(`${this.baseUrl}${url}`, options);
       return await this._handleResponse(res);
     } catch (err) {
-      // If error is a fetch failure (e.g. server is down/offline)
       if (err.message === 'Failed to fetch' || (err instanceof TypeError && err.message.toLowerCase().includes('fetch'))) {
         throw new Error('Server unavailable. Please check if the backend service is running.');
       }
@@ -118,7 +124,97 @@ class StudentAPI {
       method: 'DELETE'
     });
   }
+
+  /* ==========================================================================
+     Authentication API Requests
+     ========================================================================== */
+
+  /**
+   * Register a new user account
+   */
+  async register(userData) {
+    return this._request('/auth/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(userData)
+    });
+  }
+
+  /**
+   * Authenticate credentials and establish session
+   */
+  async login(credentials) {
+    return this._request('/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(credentials)
+    });
+  }
+
+  /**
+   * Verify email address using token
+   */
+  async verifyEmail(token) {
+    return this._request('/auth/verify-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ token })
+    });
+  }
+
+  /**
+   * Resend the verification link
+   */
+  async resendVerification(email) {
+    return this._request('/auth/resend-verification', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email })
+    });
+  }
+
+  /**
+   * Trigger password recovery link
+   */
+  async forgotPassword(email) {
+    return this._request('/auth/forgot-password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email })
+    });
+  }
+
+  /**
+   * Set new password using reset token
+   */
+  async resetPassword(token, password) {
+    return this._request('/auth/reset-password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ token, password })
+    });
+  }
+
+  /**
+   * Fetch current authenticated session profile details
+   */
+  async getMe() {
+    return this._request('/auth/me');
+  }
 }
 
 // Expose client instance globally on window
 window.studentApi = new StudentAPI();
+
