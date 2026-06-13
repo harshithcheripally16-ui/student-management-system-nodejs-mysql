@@ -1312,3 +1312,148 @@ h1, h2, h3, h4, h5, h6 {
     width: 100%;
   }
 }
+
+/* ==========================================================================
+   Select/Option drop-down styling and color variables
+   ========================================================================== */
+select.input-field {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 16px;
+  padding-right: 40px; /* Space for custom arrow */
+}
+
+select.input-field option {
+  background-color: #111827; /* Dark background to match dark theme */
+  color: #f9fafb; /* Light text for readability */
+  padding: 12px;
+}
+
+/* Keyboard accessibility focus states */
+.input-field:focus-visible,
+.btn:focus-visible,
+.portal-menu-item:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Light Mode prefers-color-scheme overrides
+   ========================================================================== */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg-dark: #f3f4f6; /* Light grey background */
+    --bg-card: rgba(255, 255, 255, 0.7); /* Translucent white card */
+    --bg-sidebar: rgba(255, 255, 255, 0.85); /* Translucent white sidebar */
+    --border-glow: rgba(0, 0, 0, 0.06);
+    --border-focus: #4f46e5;
+    
+    --text-main: #111827; /* Dark text */
+    --text-secondary: #4b5563; /* Muted text */
+    --text-muted: #9ca3af; /* Light muted text */
+    
+    --primary-color: #4f46e5;
+    --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    --sidebar-gradient: linear-gradient(180deg, rgba(79, 70, 229, 0.05) 0%, rgba(124, 58, 237, 0.02) 100%);
+    
+    --shadow-premium: 0 10px 30px -15px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.02);
+    --shadow-glow: 0 0 30px rgba(79, 70, 229, 0.08);
+  }
+  
+  body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+  }
+
+  .portal-menu-item.active {
+    background-color: rgba(79, 70, 229, 0.08);
+    color: var(--primary-color) !important;
+    border: 1px solid rgba(79, 70, 229, 0.2);
+  }
+
+  .portal-menu-item:hover {
+    color: var(--text-main);
+    background-color: rgba(0, 0, 0, 0.02);
+  }
+
+  select.input-field option {
+    background-color: #ffffff; /* Solid white background for select options in light mode */
+    color: #111827; /* Dark text */
+  }
+
+  .btn-primary {
+    background-color: #111827;
+    color: #ffffff;
+  }
+
+  .btn-primary:hover {
+    background-color: #1f2937;
+  }
+
+  .btn-secondary {
+    background-color: rgba(0, 0, 0, 0.02);
+    color: var(--text-main);
+    border-color: var(--border-glow);
+  }
+
+  .btn-secondary:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+
+  /* Chart options text colors */
+  .chart-card-header h2 {
+    color: var(--text-main);
+  }
+
+  /* Search Input adjustments */
+  .command-search-wrapper input {
+    color: var(--text-main);
+  }
+
+  .command-search-wrapper input::placeholder {
+    color: var(--text-secondary);
+  }
+
+  .landing-nav {
+    background-color: rgba(243, 244, 246, 0.5);
+  }
+}
+
+/* ==========================================================================
+   Mobile-first padding clamp and grid fixes
+   ========================================================================== */
+@media (max-width: 480px) {
+  .portal-content {
+    padding: 12px;
+  }
+  .form-card {
+    padding: 20px;
+  }
+  .kpi-card {
+    padding: 16px;
+  }
+  .portal-header {
+    padding: 0 16px;
+  }
+  .landing-nav {
+    padding: 0 4%;
+  }
+  .landing-hero {
+    padding: 60px 4% 40px 4%;
+  }
+  .profile-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+    gap: 12px;
+  }
+  .metrics-grid {
+    gap: 12px;
+  }
+  .details-drawer {
+    padding: 20px;
+  }
+}

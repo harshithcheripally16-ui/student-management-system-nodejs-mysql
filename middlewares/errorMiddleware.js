@@ -17,9 +17,9 @@ function errorHandler(err, req, res, next) {
   let details = err.details || null;
 
   // Map technical database errors to specific, human-readable UI messages
-  if (err.code === 'ECONNREFUSED' || err.code === 'ER_ACCESS_DENIED_ERROR') {
+  if (err.code === 'ECONNREFUSED' || err.code === 'ER_ACCESS_DENIED_ERROR' || err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ETIMEDOUT' || err.code === 'ENOTFOUND') {
     statusCode = 503; // Service Unavailable
-    message = 'Database connection failed. Verify MySQL is active and credentials match.';
+    message = 'Database connection failed';
   } else if (err.code === 'ER_NO_SUCH_TABLE') {
     statusCode = 500;
     message = 'Students table not found. Verify the database auto-setup initialized correctly.';

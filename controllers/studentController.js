@@ -67,7 +67,7 @@ class StudentController {
       if (!student) {
         return res.status(404).json({
           success: false,
-          message: `Student with ID ${id} not found`
+          message: 'Student not found'
         });
       }
 
@@ -100,7 +100,7 @@ class StudentController {
       if (!updatedStudent) {
         return res.status(404).json({
           success: false,
-          message: `Student with ID ${id} not found`
+          message: 'Student not found'
         });
       }
 
@@ -127,7 +127,7 @@ class StudentController {
       if (!isDeleted) {
         return res.status(404).json({
           success: false,
-          message: `Student with ID ${id} not found`
+          message: 'Student not found'
         });
       }
 

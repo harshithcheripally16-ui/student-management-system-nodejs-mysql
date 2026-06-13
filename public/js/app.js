@@ -24,6 +24,10 @@ class AppController {
     this.growthChartInstance = null;
     this.deptChartInstance = null;
     
+    // Toast and Route locks
+    this.activeToasts = new Set();
+    this.isLoadingRoute = false;
+    
     this.initDrawer();
     this.initModals();
   }
@@ -103,16 +107,10 @@ class AppController {
    * @param {'success'|'error'} type - Theme format
    */
   showToast(message, type = 'success') {
+    if (this.activeToasts.has(message)) return;
+    this.activeToasts.add(message);
+
     const container = document.getElementById('toast-container');
-    
-    const activeToasts = Array.from(container.querySelectorAll('.toast'));
-    const isDuplicate = activeToasts.some(t => {
-      const textSpan = t.querySelector('span');
-      return textSpan && textSpan.textContent === message && t.classList.contains(type);
-    });
-
-    if (isDuplicate) return;
-
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     
@@ -131,7 +129,10 @@ class AppController {
         x: 100,
         opacity: 0,
         duration: 0.3,
-        onComplete: () => toast.remove()
+        onComplete: () => {
+          toast.remove();
+          this.activeToasts.delete(message);
+        }
       });
     }, 3500);
   }
@@ -140,14 +141,8 @@ class AppController {
    * Refreshes cache connection database.
    */
   async refreshCache() {
-    try {
-      const response = await window.studentApi.getAll();
-      this.students = response.data || [];
-    } catch (error) {
-      this.showToast(error.message, 'error');
-      console.error(error);
-      this.students = [];
-    }
+    const response = await window.studentApi.getAll();
+    this.students = response.data || [];
   }
 
   /**
@@ -155,17 +150,29 @@ class AppController {
    * Renders Landing experience OR wraps inside Portal layouts based on URL hash routing.
    */
   async handleRoute() {
-    this.closeDrawer();
-    const hash = window.location.hash || '#/landing';
+    if (this.isLoadingRoute) return;
+    this.isLoadingRoute = true;
+    try {
+      this.closeDrawer();
+      const hash = window.location.hash || '#/landing';
 
-    // 1. SaaS Landing Page layout
-    if (hash === '#/landing' || hash === '') {
-      await this.renderLandingPage();
-      return;
+      // Automatically close mobile sidebar on navigation change
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar && sidebar.classList.contains('active')) {
+        sidebar.classList.remove('active');
+      }
+
+      // 1. SaaS Landing Page layout
+      if (hash === '#/landing' || hash === '') {
+        await this.renderLandingPage();
+        return;
+      }
+
+      // 2. Portal Workspace layouts (Dashboard, List, Form enrollments)
+      await this.renderPortalWrapper(hash);
+    } finally {
+      this.isLoadingRoute = false;
     }
-
-    // 2. Portal Workspace layouts (Dashboard, List, Form enrollments)
-    await this.renderPortalWrapper(hash);
   }
 
   /* ==========================================================================
@@ -405,75 +412,91 @@ class AppController {
      ========================================================================== */
 
   async loadAndRenderDashboard(target) {
-    await this.refreshCache();
+    try {
+      await this.refreshCache();
 
-    // Stats calculations
-    const totalCount = this.students.length;
-    const csCount = this.students.filter(s => 
-      s.department.toLowerCase().includes('computer science') || 
-      s.department.toLowerCase().includes('cs') ||
-      s.department.toLowerCase().includes('information technology') ||
-      s.department.toLowerCase().includes('it')
-    ).length;
-    const otherCount = totalCount - csCount;
+      // Stats calculations
+      const totalCount = this.students.length;
+      const csCount = this.students.filter(s => 
+        s.department.toLowerCase().includes('computer science') || 
+        s.department.toLowerCase().includes('cs') ||
+        s.department.toLowerCase().includes('information technology') ||
+        s.department.toLowerCase().includes('it')
+      ).length;
+      const otherCount = totalCount - csCount;
 
-    target.innerHTML = `
-      <!-- Row 1: KPI Grid -->
-      <div class="metrics-grid">
-        <div class="glassmorphic-card kpi-card">
-          <div class="kpi-header">
-            <span>TOTAL REGISTRATIONS</span>
-            <i class="fa-solid fa-graduation-cap"></i>
+      target.innerHTML = `
+        <!-- Row 1: KPI Grid -->
+        <div class="metrics-grid">
+          <div class="glassmorphic-card kpi-card">
+            <div class="kpi-header">
+              <span>TOTAL REGISTRATIONS</span>
+              <i class="fa-solid fa-graduation-cap"></i>
+            </div>
+            <span class="kpi-value">${totalCount}</span>
+            <div class="kpi-footer">Active student database rows</div>
           </div>
-          <span class="kpi-value">${totalCount}</span>
-          <div class="kpi-footer">Active student database rows</div>
-        </div>
-        <div class="glassmorphic-card kpi-card">
-          <div class="kpi-header">
-            <span>CS & IT SPECIALISTS</span>
-            <i class="fa-solid fa-laptop-code"></i>
+          <div class="glassmorphic-card kpi-card">
+            <div class="kpi-header">
+              <span>CS & IT SPECIALISTS</span>
+              <i class="fa-solid fa-laptop-code"></i>
+            </div>
+            <span class="kpi-value">${csCount}</span>
+            <div class="kpi-footer"><span>${totalCount > 0 ? Math.round((csCount/totalCount)*100) : 0}%</span> of total database</div>
           </div>
-          <span class="kpi-value">${csCount}</span>
-          <div class="kpi-footer"><span>${totalCount > 0 ? Math.round((csCount/totalCount)*100) : 0}%</span> of total database</div>
-        </div>
-        <div class="glassmorphic-card kpi-card">
-          <div class="kpi-header">
-            <span>OTHER MAJORS</span>
-            <i class="fa-solid fa-gears"></i>
-          </div>
-          <span class="kpi-value">${otherCount}</span>
-          <div class="kpi-footer">Engineering, Science, Arts</div>
-        </div>
-      </div>
-
-      <!-- Row 2: Charts Grid -->
-      <div class="dashboard-visuals-grid">
-        <div class="glassmorphic-card">
-          <div class="chart-card-header">
-            <h2>Enrollment Growth Trend</h2>
-          </div>
-          <div class="chart-container" style="height: 250px;">
-            <canvas id="growthLineChart"></canvas>
+          <div class="glassmorphic-card kpi-card">
+            <div class="kpi-header">
+              <span>OTHER MAJORS</span>
+              <i class="fa-solid fa-gears"></i>
+            </div>
+            <span class="kpi-value">${otherCount}</span>
+            <div class="kpi-footer">Engineering, Science, Arts</div>
           </div>
         </div>
-        
-        <div class="glassmorphic-card">
-          <div class="chart-card-header">
-            <h2>Department Allocation</h2>
+
+        <!-- Row 2: Charts Grid -->
+        <div class="dashboard-visuals-grid">
+          <div class="glassmorphic-card">
+            <div class="chart-card-header">
+              <h2>Enrollment Growth Trend</h2>
+            </div>
+            <div class="chart-container" style="height: 250px;">
+              <canvas id="growthLineChart"></canvas>
+            </div>
           </div>
-          <div class="chart-container" style="height: 250px; display: flex; align-items: center; justify-content: center;">
-            <canvas id="deptDoughnutChart" style="max-height: 220px; max-width: 220px;"></canvas>
+          
+          <div class="glassmorphic-card">
+            <div class="chart-card-header">
+              <h2>Department Allocation</h2>
+            </div>
+            <div class="chart-container" style="height: 250px; display: flex; align-items: center; justify-content: center;">
+              <canvas id="deptDoughnutChart" style="max-height: 220px; max-width: 220px;"></canvas>
+            </div>
           </div>
         </div>
-      </div>
-    `;
+      `;
 
-    // GSAP load stats
-    gsap.from(".kpi-card", { opacity: 0, y: 15, duration: 0.4, stagger: 0.1, ease: "power2.out" });
-    gsap.from(".dashboard-visuals-grid .glassmorphic-card", { opacity: 0, y: 20, duration: 0.5, stagger: 0.15, ease: "power2.out", delay: 0.2 });
+      // GSAP load stats
+      gsap.from(".kpi-card", { opacity: 0, y: 15, duration: 0.4, stagger: 0.1, ease: "power2.out" });
+      gsap.from(".dashboard-visuals-grid .glassmorphic-card", { opacity: 0, y: 20, duration: 0.5, stagger: 0.15, ease: "power2.out", delay: 0.2 });
 
-    // Initialize charts
-    this.initDashboardCharts();
+      // Initialize charts
+      this.initDashboardCharts();
+    } catch (error) {
+      this.showToast(error.message, 'error');
+      console.error(error);
+      target.innerHTML = `
+        <div class="empty-state-wrapper">
+          <div class="empty-state-screen glassmorphic-card">
+            <i class="fa-solid fa-circle-exclamation" style="font-size: 48px; color: var(--danger-color); margin-bottom: 16px;"></i>
+            <h2>Failed to load Dashboard</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 24px;">${error.message}</p>
+            <button class="btn btn-primary btn-sm" id="btn-retry-dashboard">Retry Connection</button>
+          </div>
+        </div>
+      `;
+      document.getElementById('btn-retry-dashboard').addEventListener('click', () => this.loadAndRenderDashboard(target));
+    }
   }
 
   /**
@@ -570,44 +593,100 @@ class AppController {
      ========================================================================== */
 
   async loadAndRenderStudentsGrid(target) {
-    this.closeDrawer();
-    await this.refreshCache();
-    
-    // Default list layout structure
-    target.innerHTML = `
-      <div class="search-filter-panel">
-        <!-- Search bar with command center design -->
-        <div class="command-search-wrapper">
-          <i class="fa-solid fa-magnifying-glass"></i>
-          <input type="text" class="command-search-input" id="search-box" placeholder="Search by name, email, major..." value="${this.searchQuery}">
+    try {
+      this.closeDrawer();
+      await this.refreshCache();
+      
+      // Default list layout structure
+      target.innerHTML = `
+        <div class="search-filter-panel">
+          <!-- Search bar with command center design -->
+          <div class="command-search-wrapper">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" class="command-search-input" id="search-box" placeholder="Search by name, email, major..." value="${this.searchQuery}" aria-label="Search students">
+          </div>
+
+          <!-- Horizontal filter pill list -->
+          <div class="filter-pills-list" id="dept-pills-container">
+            <!-- Dynamic Pills will be loaded here -->
+          </div>
         </div>
 
-        <!-- Horizontal filter pill list -->
-        <div class="filter-pills-list" id="dept-pills-container">
-          <!-- Dynamic Pills will be loaded here -->
+        <!-- Profile Card responsive Grid -->
+        <div class="profile-card-grid" id="grid-container">
+          <!-- Cards are dynamically rendered here -->
         </div>
-      </div>
 
-      <!-- Profile Card responsive Grid -->
-      <div class="profile-card-grid" id="grid-container">
-        <!-- Cards are dynamically rendered here -->
-      </div>
+        <!-- Pagination Controls -->
+        <div class="grid-pagination" id="grid-pagination-container">
+          <!-- Pagination controls here -->
+        </div>
+      `;
 
-      <!-- Pagination Controls -->
-      <div class="grid-pagination" id="grid-pagination-container">
-        <!-- Pagination controls here -->
-      </div>
-    `;
+      // Bind real-time input search event
+      const searchBox = document.getElementById('search-box');
+      searchBox.addEventListener('input', (e) => {
+        this.searchQuery = e.target.value;
+        this.currentPage = 1;
+        this.updateGridAndPagination();
+      });
 
-    // Bind real-time input search event
-    const searchBox = document.getElementById('search-box');
-    searchBox.addEventListener('input', (e) => {
-      this.searchQuery = e.target.value;
-      this.currentPage = 1;
       this.updateGridAndPagination();
+    } catch (error) {
+      this.showToast(error.message, 'error');
+      console.error(error);
+      target.innerHTML = `
+        <div class="empty-state-wrapper">
+          <div class="empty-state-screen glassmorphic-card">
+            <i class="fa-solid fa-circle-exclamation" style="font-size: 48px; color: var(--danger-color); margin-bottom: 16px;"></i>
+            <h2>Failed to load Directory</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 24px;">${error.message}</p>
+            <button class="btn btn-primary btn-sm" id="btn-retry-grid">Retry Connection</button>
+          </div>
+        </div>
+      `;
+      document.getElementById('btn-retry-grid').addEventListener('click', () => this.loadAndRenderStudentsGrid(target));
+    }
+  }
+
+  /**
+   * Filters and sorts the cached students list based on search queries and department filters.
+   */
+  processListState() {
+    // 1. Filter students
+    this.filteredStudents = this.students.filter(student => {
+      // Filter by department pill
+      if (this.departmentFilter && student.department !== this.departmentFilter) {
+        return false;
+      }
+      
+      // Filter by search query (name, email, department/major, year)
+      if (this.searchQuery) {
+        const query = this.searchQuery.toLowerCase();
+        const nameMatch = student.name.toLowerCase().includes(query);
+        const emailMatch = student.email.toLowerCase().includes(query);
+        const deptMatch = student.department.toLowerCase().includes(query);
+        const yearMatch = student.year.toString() === query;
+        
+        return nameMatch || emailMatch || deptMatch || yearMatch;
+      }
+      
+      return true;
     });
 
-    this.updateGridAndPagination();
+    // 2. Sort students (by sortField and sortOrder)
+    this.filteredStudents.sort((a, b) => {
+      let valA = a[this.sortField];
+      let valB = b[this.sortField];
+
+      // Handle strings case-insensitively
+      if (typeof valA === 'string') valA = valA.toLowerCase();
+      if (typeof valB === 'string') valB = valB.toLowerCase();
+
+      if (valA < valB) return this.sortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return this.sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
   }
 
   /**
@@ -881,7 +960,7 @@ class AppController {
         await window.studentApi.delete(student.id);
         
         modal.classList.remove('active');
-        this.showToast('Student record has been successfully deleted.');
+        this.showToast('Student deleted successfully');
         
         await this.loadAndRenderStudentsGrid(document.getElementById('portal-content-area'));
       } catch (err) {
@@ -954,6 +1033,13 @@ class AppController {
     gsap.from(".form-card", { opacity: 0, scale: 0.98, y: 15, duration: 0.5, ease: "power2.out" });
 
     const form = document.getElementById('student-form');
+    // Clear invalid states on typing
+    const inputs = form.querySelectorAll('.input-field');
+    inputs.forEach(input => {
+      input.addEventListener('input', () => input.classList.remove('invalid'));
+      input.addEventListener('change', () => input.classList.remove('invalid'));
+    });
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (this.validateForm()) {
@@ -1035,6 +1121,13 @@ class AppController {
       gsap.from(".form-card", { opacity: 0, scale: 0.98, y: 15, duration: 0.5, ease: "power2.out" });
 
       const form = document.getElementById('student-form');
+      // Clear invalid states on typing
+      const inputs = form.querySelectorAll('.input-field');
+      inputs.forEach(input => {
+        input.addEventListener('input', () => input.classList.remove('invalid'));
+        input.addEventListener('change', () => input.classList.remove('invalid'));
+      });
+
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (this.validateForm()) {
@@ -1044,6 +1137,14 @@ class AppController {
     } catch (err) {
       this.showToast(err.message, 'error');
       console.error(err);
+      target.innerHTML = `
+        <div class="form-wrapper glassmorphic-card" style="text-align: center; padding: 40px;">
+          <i class="fa-solid fa-circle-exclamation" style="font-size: 48px; color: var(--danger-color); margin-bottom: 16px;"></i>
+          <h2>Operation Failed</h2>
+          <p style="color: var(--text-secondary); margin-bottom: 24px;">${err.message}</p>
+          <a href="#/students" class="btn btn-primary">Back to Directory</a>
+        </div>
+      `;
     }
   }
 
@@ -1110,10 +1211,10 @@ class AppController {
 
       if (id) {
         await window.studentApi.update(id, payload);
-        this.showToast('Student record updated successfully.');
+        this.showToast('Student updated successfully');
       } else {
         await window.studentApi.create(payload);
-        this.showToast('Student enrolled successfully.');
+        this.showToast('Student added successfully');
       }
 
       window.location.hash = '#/students';
@@ -1131,7 +1232,7 @@ class AppController {
             yearSelect.classList.add('invalid');
           }
         });
-        this.showToast('Please correct validation errors.', 'error');
+        this.showToast('Validation failed', 'error');
       } else {
         this.showToast(err.message, 'error');
       }

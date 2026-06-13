@@ -24,7 +24,14 @@ class StudentAPI {
 
     if (!response.ok) {
       // Extract custom error messages returned by Express errorMiddleware
-      const errMsg = (payload.error && payload.error.message) || payload.message || 'Server operation failed.';
+      let errMsg = (payload.error && payload.error.message) || payload.message;
+      if (!errMsg) {
+        if (payload.errors && payload.errors.length > 0) {
+          errMsg = 'Validation failed';
+        } else {
+          errMsg = 'Server operation failed';
+        }
+      }
       const error = new Error(errMsg);
       error.status = response.status;
       error.errors = payload.errors || null; // validation checks
