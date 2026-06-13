@@ -1321,6 +1321,322 @@ select.input-field option {
 }
 
 /* ==========================================================================
+   Campus.OS Onboarding Experience & Interactive Form Components
+   ========================================================================== */
+/* Progress indicator at top of card */
+.form-progress-container {
+  width: 100%;
+  height: 4px;
+  background-color: var(--border-glow);
+  border-radius: 2px;
+  margin-bottom: 24px;
+  overflow: hidden;
+  position: relative;
+}
+
+.form-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--primary-gradient);
+  box-shadow: 0 0 8px rgba(226, 183, 108, 0.4);
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.form-progress-text {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-secondary);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Autocomplete positioning */
+.autocomplete-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  background-color: #0d0d0d;
+  border: 1px solid var(--border-glow);
+  border-radius: 4px;
+  box-shadow: var(--shadow-premium);
+  z-index: 1000;
+  display: none;
+}
+
+.autocomplete-dropdown.active {
+  display: block;
+}
+
+.autocomplete-item {
+  padding: 12px 16px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.highlighted {
+  color: var(--text-main);
+  background-color: var(--btn-hover-bg);
+}
+
+/* Searchable academic year dropdown */
+.custom-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.custom-select-trigger {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border-glow);
+  color: var(--text-main);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+  font-family: var(--font-ui);
+  font-size: 15px;
+}
+
+.custom-select-trigger:focus,
+.custom-select-trigger.active {
+  border-color: var(--border-focus);
+}
+
+.custom-select-trigger i {
+  font-size: 12px;
+  color: var(--text-secondary);
+  transition: transform var(--transition-fast);
+}
+
+.custom-select-trigger.active i {
+  transform: rotate(180deg);
+}
+
+.custom-select-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  background-color: #0d0d0d;
+  border: 1px solid var(--border-glow);
+  border-radius: 4px;
+  box-shadow: var(--shadow-premium);
+  z-index: 1000;
+  display: none;
+  overflow: hidden;
+}
+
+.custom-select-dropdown.active {
+  display: block;
+}
+
+.custom-select-search-wrapper {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-glow);
+  gap: 8px;
+}
+
+.custom-select-search-wrapper i {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.custom-select-search {
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  font-size: 13px;
+  font-family: var(--font-ui);
+  outline: none;
+  width: 100%;
+}
+
+.custom-select-options {
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.custom-select-option {
+  padding: 12px 16px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.custom-select-option:hover,
+.custom-select-option.highlighted {
+  color: var(--text-main);
+  background-color: var(--btn-hover-bg);
+}
+
+.custom-select-option.selected {
+  color: var(--primary-color);
+  background-color: var(--btn-hover-bg);
+  font-weight: 600;
+}
+
+/* Real-time inline feedback */
+.validation-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color var(--transition-fast);
+}
+
+.validation-badge.success {
+  color: var(--success-color);
+}
+
+.validation-badge.error {
+  color: var(--danger-color);
+}
+
+.validation-badge.neutral {
+  color: var(--text-muted);
+}
+
+.capitalize-suggest {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--primary-color);
+  margin-top: 6px;
+  display: inline-block;
+}
+
+.capitalize-suggest-link {
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.capitalize-suggest-link:hover {
+  color: var(--text-main);
+}
+
+/* Recent department suggestions chips */
+.recent-suggestions-container {
+  margin-top: 8px;
+}
+
+.recent-suggestions-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.recent-suggestions-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.recent-suggestion-chip {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-glow);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  background: transparent;
+}
+
+.recent-suggestion-chip:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background-color: var(--btn-hover-bg);
+}
+
+/* Layout division */
+.form-group-section {
+  border-left: 2px solid var(--border-glow);
+  padding-left: 20px;
+  margin-bottom: 32px;
+  transition: border-color var(--transition-fluid);
+}
+
+.form-group-section.active {
+  border-color: var(--primary-color);
+}
+
+/* Success Onboarding Screen */
+.onboarding-success-screen {
+  text-align: center;
+  padding: 40px 20px;
+  animation: fadeIn 0.5s var(--transition-fluid) forwards;
+}
+
+.success-check-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background-color: rgba(16, 185, 129, 0.05);
+  border: 2px solid var(--success-color);
+  color: var(--success-color);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  margin-bottom: 24px;
+  animation: scaleUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.success-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  color: var(--text-main);
+}
+
+.success-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 32px;
+  line-height: 1.6;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.6); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* ==========================================================================
    Light Mode prefers-color-scheme overrides
    ========================================================================== */
 @media (prefers-color-scheme: light) {
@@ -1365,6 +1681,11 @@ select.input-field option {
   select.input-field option {
     background-color: #ffffff;
     color: #18181b;
+  }
+
+  .autocomplete-dropdown,
+  .custom-select-dropdown {
+    background-color: #ffffff;
   }
 
   .btn-primary {

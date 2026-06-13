@@ -952,44 +952,89 @@ class AppController {
       <div class="form-wrapper">
         <div class="form-title-box">
           <h2>Enroll Student</h2>
-          <p>Enter profile details to register the student record</p>
+          <p>Register a new student profile under the Campus.OS domain</p>
         </div>
         
         <div class="form-card">
+          <!-- Progress indicator -->
+          <div class="form-progress-text">
+            <span>Progress</span>
+            <span id="form-progress-percentage">0% Complete</span>
+          </div>
+          <div class="form-progress-container">
+            <div class="form-progress-fill" id="form-progress-bar"></div>
+          </div>
+
           <form id="student-form" novalidate>
-            <div class="input-group">
-              <label class="input-label" for="form-name">Name</label>
-              <input type="text" class="input-field" id="form-name" placeholder="Johnathan Doe" required>
-              <span class="error-hint">Please enter a valid student name.</span>
+            <!-- Section 1: Identity -->
+            <div class="form-group-section active" id="form-sec-identity">
+              <div class="input-group">
+                <label class="input-label" for="form-name">Name</label>
+                <input type="text" class="input-field" id="form-name" placeholder="Johnathan Doe" autocomplete="off" required>
+                <div class="capitalize-suggest" id="name-suggest-box" style="display: none;"></div>
+                <div class="validation-badge neutral" id="name-validation">
+                  <i class="fa-solid fa-circle-info"></i> Enter full name
+                </div>
+              </div>
+
+              <div class="input-group" style="margin-bottom: 0;">
+                <label class="input-label" for="form-email">Email Address</label>
+                <input type="email" class="input-field" id="form-email" placeholder="john.doe@school.edu" autocomplete="off" required>
+                <div class="validation-badge neutral" id="email-validation">
+                  <i class="fa-solid fa-circle-info"></i> Enter email address
+                </div>
+              </div>
             </div>
 
-            <div class="input-group">
-              <label class="input-label" for="form-email">Email Address</label>
-              <input type="email" class="input-field" id="form-email" placeholder="john.doe@school.edu" required>
-              <span class="error-hint" id="email-error">Please enter a valid school email address.</span>
+            <hr style="border: none; border-top: 1px solid var(--border-glow); margin: 32px 0;">
+
+            <!-- Section 2: Academic Details -->
+            <div class="form-group-section" id="form-sec-academic">
+              <div class="input-group">
+                <label class="input-label" for="form-dept">Major / Department</label>
+                <div class="autocomplete-wrapper">
+                  <input type="text" class="input-field" id="form-dept" placeholder="Computer Science" autocomplete="off" required>
+                  <div class="autocomplete-dropdown" id="dept-dropdown"></div>
+                </div>
+                <div class="recent-suggestions-container" id="recent-suggestions" style="display: none;">
+                  <div class="recent-suggestions-label">Recent Departments</div>
+                  <div class="recent-suggestions-list"></div>
+                </div>
+                <div class="validation-badge neutral" id="dept-validation">
+                  <i class="fa-solid fa-circle-info"></i> Specify major
+                </div>
+              </div>
+
+              <div class="input-group" style="margin-bottom: 0;">
+                <label class="input-label" for="year-trigger">Academic Year</label>
+                <div class="custom-select-wrapper">
+                  <div class="custom-select-trigger" id="year-trigger" tabindex="0">
+                    <span id="year-trigger-text">Select academic year</span>
+                    <i class="fa-solid fa-chevron-down"></i>
+                  </div>
+                  <div class="custom-select-dropdown" id="year-dropdown">
+                    <div class="custom-select-search-wrapper">
+                      <i class="fa-solid fa-magnifying-glass"></i>
+                      <input type="text" class="custom-select-search" id="year-search" placeholder="Search academic year..." autocomplete="off">
+                    </div>
+                    <div class="custom-select-options" id="year-options">
+                      <div class="custom-select-option" data-value="1">1st Year</div>
+                      <div class="custom-select-option" data-value="2">2nd Year</div>
+                      <div class="custom-select-option" data-value="3">3rd Year</div>
+                      <div class="custom-select-option" data-value="4">4th Year</div>
+                      <div class="custom-select-option" data-value="5">Postgraduate</div>
+                      <div class="custom-select-option" data-value="6">Alumni</div>
+                    </div>
+                  </div>
+                  <input type="hidden" id="form-year" value="">
+                </div>
+                <div class="validation-badge neutral" id="year-validation">
+                  <i class="fa-solid fa-circle-info"></i> Select academic year
+                </div>
+              </div>
             </div>
 
-            <div class="input-group">
-              <label class="input-label" for="form-dept">Major / Department</label>
-              <input type="text" class="input-field" id="form-dept" placeholder="Computer Science" required>
-              <span class="error-hint">Please specify the academic major.</span>
-            </div>
-
-            <div class="input-group">
-              <label class="input-label" for="form-year">Academic Year</label>
-              <select class="input-field" id="form-year" style="cursor: pointer;" required>
-                <option value="" disabled selected>Select academic year</option>
-                <option value="1">Year 1 (Freshman)</option>
-                <option value="2">Year 2 (Sophomore)</option>
-                <option value="3">Year 3 (Junior)</option>
-                <option value="4">Year 4 (Senior)</option>
-                <option value="5">Year 5</option>
-                <option value="6">Year 6</option>
-              </select>
-              <span class="error-hint">Please select an academic year (1-6).</span>
-            </div>
-
-            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px;">
+            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 40px;">
               <a href="#/students" class="btn btn-secondary">Cancel</a>
               <button type="submit" class="btn btn-primary" id="btn-form-submit">
                 <i class="fa-solid fa-floppy-disk"></i> Enroll Student
@@ -1000,16 +1045,9 @@ class AppController {
       </div>
     `;
 
-
+    this.setupInteractiveForm(false);
 
     const form = document.getElementById('student-form');
-    // Clear invalid states on typing
-    const inputs = form.querySelectorAll('.input-field');
-    inputs.forEach(input => {
-      input.addEventListener('input', () => input.classList.remove('invalid'));
-      input.addEventListener('change', () => input.classList.remove('invalid'));
-    });
-
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (this.validateForm()) {
@@ -1043,40 +1081,85 @@ class AppController {
           </div>
           
           <div class="form-card">
+            <!-- Progress indicator -->
+            <div class="form-progress-text">
+              <span>Progress</span>
+              <span id="form-progress-percentage">100% Complete</span>
+            </div>
+            <div class="form-progress-container">
+              <div class="form-progress-fill" id="form-progress-bar" style="width: 100%;"></div>
+            </div>
+
             <form id="student-form" novalidate>
-              <div class="input-group">
-                <label class="input-label" for="form-name">Name</label>
-                <input type="text" class="input-field" id="form-name" value="${student.name}" required>
-                <span class="error-hint">Please enter a valid student name.</span>
+              <!-- Section 1: Identity -->
+              <div class="form-group-section active" id="form-sec-identity">
+                <div class="input-group">
+                  <label class="input-label" for="form-name">Name</label>
+                  <input type="text" class="input-field" id="form-name" value="${student.name}" autocomplete="off" required>
+                  <div class="capitalize-suggest" id="name-suggest-box" style="display: none;"></div>
+                  <div class="validation-badge neutral" id="name-validation">
+                    <i class="fa-solid fa-circle-info"></i> Enter full name
+                  </div>
+                </div>
+
+                <div class="input-group" style="margin-bottom: 0;">
+                  <label class="input-label" for="form-email">Email Address</label>
+                  <input type="email" class="input-field" id="form-email" value="${student.email}" autocomplete="off" required>
+                  <div class="validation-badge neutral" id="email-validation">
+                    <i class="fa-solid fa-circle-info"></i> Enter email address
+                  </div>
+                </div>
               </div>
 
-              <div class="input-group">
-                <label class="input-label" for="form-email">Email Address</label>
-                <input type="email" class="input-field" id="form-email" value="${student.email}" required>
-                <span class="error-hint" id="email-error">Please enter a valid school email address.</span>
+              <hr style="border: none; border-top: 1px solid var(--border-glow); margin: 32px 0;">
+
+              <!-- Section 2: Academic Details -->
+              <div class="form-group-section" id="form-sec-academic">
+                <div class="input-group">
+                  <label class="input-label" for="form-dept">Major / Department</label>
+                  <div class="autocomplete-wrapper">
+                    <input type="text" class="input-field" id="form-dept" value="${student.department}" autocomplete="off" required>
+                    <div class="autocomplete-dropdown" id="dept-dropdown"></div>
+                  </div>
+                  <div class="recent-suggestions-container" id="recent-suggestions" style="display: none;">
+                    <div class="recent-suggestions-label">Recent Departments</div>
+                    <div class="recent-suggestions-list"></div>
+                  </div>
+                  <div class="validation-badge neutral" id="dept-validation">
+                    <i class="fa-solid fa-circle-info"></i> Specify major
+                  </div>
+                </div>
+
+                <div class="input-group" style="margin-bottom: 0;">
+                  <label class="input-label" for="year-trigger">Academic Year</label>
+                  <div class="custom-select-wrapper">
+                    <div class="custom-select-trigger" id="year-trigger" tabindex="0">
+                      <span id="year-trigger-text">Select academic year</span>
+                      <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                    <div class="custom-select-dropdown" id="year-dropdown">
+                      <div class="custom-select-search-wrapper">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" class="custom-select-search" id="year-search" placeholder="Search academic year..." autocomplete="off">
+                      </div>
+                      <div class="custom-select-options" id="year-options">
+                        <div class="custom-select-option" data-value="1">1st Year</div>
+                        <div class="custom-select-option" data-value="2">2nd Year</div>
+                        <div class="custom-select-option" data-value="3">3rd Year</div>
+                        <div class="custom-select-option" data-value="4">4th Year</div>
+                        <div class="custom-select-option" data-value="5">Postgraduate</div>
+                        <div class="custom-select-option" data-value="6">Alumni</div>
+                      </div>
+                    </div>
+                    <input type="hidden" id="form-year" value="${student.year}">
+                  </div>
+                  <div class="validation-badge neutral" id="year-validation">
+                    <i class="fa-solid fa-circle-info"></i> Select academic year
+                  </div>
+                </div>
               </div>
 
-              <div class="input-group">
-                <label class="input-label" for="form-dept">Major / Department</label>
-                <input type="text" class="input-field" id="form-dept" value="${student.department}" required>
-                <span class="error-hint">Please specify the academic major.</span>
-              </div>
-
-              <div class="input-group">
-                <label class="input-label" for="form-year">Academic Year</label>
-                <select class="input-field" id="form-year" style="cursor: pointer;" required>
-                  <option value="" disabled>Select academic year</option>
-                  <option value="1" ${student.year === 1 ? 'selected' : ''}>Year 1 (Freshman)</option>
-                  <option value="2" ${student.year === 2 ? 'selected' : ''}>Year 2 (Sophomore)</option>
-                  <option value="3" ${student.year === 3 ? 'selected' : ''}>Year 3 (Junior)</option>
-                  <option value="4" ${student.year === 4 ? 'selected' : ''}>Year 4 (Senior)</option>
-                  <option value="5" ${student.year === 5 ? 'selected' : ''}>Year 5</option>
-                  <option value="6" ${student.year === 6 ? 'selected' : ''}>Year 6</option>
-                </select>
-                <span class="error-hint">Please select an academic year (1-6).</span>
-              </div>
-
-              <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px;">
+              <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 40px;">
                 <a href="#/students" class="btn btn-secondary">Cancel</a>
                 <button type="submit" class="btn btn-primary" id="btn-form-submit">
                   <i class="fa-solid fa-floppy-disk"></i> Apply Changes
@@ -1087,16 +1170,9 @@ class AppController {
         </div>
       `;
 
-
+      this.setupInteractiveForm(true, student.year);
 
       const form = document.getElementById('student-form');
-      // Clear invalid states on typing
-      const inputs = form.querySelectorAll('.input-field');
-      inputs.forEach(input => {
-        input.addEventListener('input', () => input.classList.remove('invalid'));
-        input.addEventListener('change', () => input.classList.remove('invalid'));
-      });
-
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (this.validateForm()) {
@@ -1117,9 +1193,416 @@ class AppController {
     }
   }
 
-  /**
-   * Client-side validation checking values using regex patterns before contacting server.
-   */
+  setupInteractiveForm(isEditMode = false, initialYear = null) {
+    const nameInput = document.getElementById('form-name');
+    const emailInput = document.getElementById('form-email');
+    const deptInput = document.getElementById('form-dept');
+    const yearInput = document.getElementById('form-year');
+    
+    const deptDropdown = document.getElementById('dept-dropdown');
+    
+    const yearTrigger = document.getElementById('year-trigger');
+    const yearDropdown = document.getElementById('year-dropdown');
+    const yearSearch = document.getElementById('year-search');
+    const yearOptions = document.querySelectorAll('.custom-select-option');
+    const yearTriggerText = document.getElementById('year-trigger-text');
+
+    const states = {
+      name: false,
+      email: false,
+      dept: false,
+      year: false
+    };
+
+    const capitalizeName = (name) => {
+      return name
+        .toLowerCase()
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    };
+
+    const updateFormProgress = () => {
+      let score = 0;
+      if (states.name) score += 25;
+      if (states.email) score += 25;
+      if (states.dept) score += 25;
+      if (states.year) score += 25;
+      
+      const fillBar = document.getElementById('form-progress-bar');
+      const textPercentage = document.getElementById('form-progress-percentage');
+      if (fillBar) fillBar.style.width = `${score}%`;
+      if (textPercentage) textPercentage.textContent = `${score}% Complete`;
+    };
+    
+    const focusSection = (inputId, groupIndex) => {
+      const sections = document.querySelectorAll('.form-group-section');
+      sections.forEach((sec, idx) => {
+        if (idx === groupIndex) {
+          sec.classList.add('active');
+        } else {
+          sec.classList.remove('active');
+        }
+      });
+    };
+    
+    nameInput.addEventListener('focus', () => focusSection('form-name', 0));
+    emailInput.addEventListener('focus', () => focusSection('form-email', 0));
+    deptInput.addEventListener('focus', () => focusSection('form-dept', 1));
+    yearTrigger.addEventListener('focus', () => focusSection('year-trigger', 1));
+
+    const validateName = () => {
+      const val = nameInput.value.trim();
+      const badge = document.getElementById('name-validation');
+      const suggestBox = document.getElementById('name-suggest-box');
+      
+      nameInput.classList.remove('invalid');
+      
+      if (val.length >= 2) {
+        states.name = true;
+        badge.className = 'validation-badge success';
+        badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> Name valid';
+        
+        const capitalized = capitalizeName(val);
+        if (val !== capitalized) {
+          suggestBox.style.display = 'block';
+          suggestBox.innerHTML = `Suggest capitalization: <span class="capitalize-suggest-link">${capitalized}</span>`;
+          const link = suggestBox.querySelector('.capitalize-suggest-link');
+          link.addEventListener('click', () => {
+            nameInput.value = capitalized;
+            suggestBox.style.display = 'none';
+            validateName();
+            updateFormProgress();
+          });
+        } else {
+          suggestBox.style.display = 'none';
+        }
+      } else if (val.length > 0) {
+        states.name = false;
+        badge.className = 'validation-badge error';
+        badge.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Name must be at least 2 characters';
+        suggestBox.style.display = 'none';
+      } else {
+        states.name = false;
+        badge.className = 'validation-badge neutral';
+        badge.innerHTML = '<i class="fa-solid fa-circle-info"></i> Enter full name';
+        suggestBox.style.display = 'none';
+      }
+    };
+    nameInput.addEventListener('input', validateName);
+    nameInput.addEventListener('blur', validateName);
+
+    const validateEmail = () => {
+      const val = emailInput.value.trim();
+      const badge = document.getElementById('email-validation');
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      
+      emailInput.classList.remove('invalid');
+      
+      if (emailRegex.test(val)) {
+        states.email = true;
+        badge.className = 'validation-badge success';
+        badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> Email valid';
+      } else if (val.length > 0) {
+        states.email = false;
+        badge.className = 'validation-badge error';
+        badge.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Please enter a valid email format';
+      } else {
+        states.email = false;
+        badge.className = 'validation-badge neutral';
+        badge.innerHTML = '<i class="fa-solid fa-circle-info"></i> Enter email address';
+      }
+    };
+    emailInput.addEventListener('input', validateEmail);
+    emailInput.addEventListener('blur', validateEmail);
+
+    const deptSeeds = [
+      "Computer Science",
+      "Information Technology",
+      "Mechanical Engineering",
+      "Mechatronics",
+      "Civil Engineering",
+      "Chemical Engineering",
+      "Electrical Engineering",
+      "Electronics Engineering",
+      "Aerospace Engineering",
+      "Biomedical Engineering",
+      "Environmental Science",
+      "Business Administration",
+      "Physics",
+      "Mathematics"
+    ];
+    
+    let currentFocus = -1;
+    
+    const showDeptSuggestions = (query) => {
+      const uniqueDepts = new Set([
+        ...deptSeeds,
+        ...this.students.map(s => s.department)
+      ]);
+      const filterQuery = query.toLowerCase().trim();
+      const matched = Array.from(uniqueDepts).filter(dept => 
+        dept.toLowerCase().includes(filterQuery)
+      );
+      
+      deptDropdown.innerHTML = '';
+      currentFocus = -1;
+      
+      if (filterQuery.length > 0 && matched.length > 0) {
+        deptDropdown.classList.add('active');
+        matched.forEach((dept) => {
+          const item = document.createElement('div');
+          item.className = 'autocomplete-item';
+          item.textContent = dept;
+          item.addEventListener('mousedown', (ev) => {
+            ev.preventDefault();
+          });
+          item.addEventListener('click', () => {
+            deptInput.value = dept;
+            deptDropdown.classList.remove('active');
+            validateDept();
+            updateFormProgress();
+            saveRecentDept(dept);
+          });
+          deptDropdown.appendChild(item);
+        });
+      } else {
+        deptDropdown.classList.remove('active');
+      }
+    };
+
+    const validateDept = () => {
+      const val = deptInput.value.trim();
+      const badge = document.getElementById('dept-validation');
+      
+      deptInput.classList.remove('invalid');
+      
+      if (val.length >= 2) {
+        states.dept = true;
+        badge.className = 'validation-badge success';
+        badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> Department specified';
+      } else if (val.length > 0) {
+        states.dept = false;
+        badge.className = 'validation-badge error';
+        badge.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Department name is too short';
+      } else {
+        states.dept = false;
+        badge.className = 'validation-badge neutral';
+        badge.innerHTML = '<i class="fa-solid fa-circle-info"></i> Specify major';
+      }
+    };
+
+    deptInput.addEventListener('input', (e) => {
+      showDeptSuggestions(e.target.value);
+      validateDept();
+    });
+
+    deptInput.addEventListener('blur', () => {
+      deptDropdown.classList.remove('active');
+      validateDept();
+      updateFormProgress();
+    });
+
+    deptInput.addEventListener('keydown', (e) => {
+      const items = deptDropdown.querySelectorAll('.autocomplete-item');
+      if (items.length === 0) return;
+      
+      if (e.key === 'ArrowDown') {
+        currentFocus++;
+        addHighlight(items);
+        e.preventDefault();
+      } else if (e.key === 'ArrowUp') {
+        currentFocus--;
+        addHighlight(items);
+        e.preventDefault();
+      } else if (e.key === 'Enter') {
+        if (currentFocus > -1 && items[currentFocus]) {
+          items[currentFocus].click();
+          e.preventDefault();
+        }
+      }
+    });
+
+    const addHighlight = (items) => {
+      removeHighlight(items);
+      if (currentFocus >= items.length) currentFocus = 0;
+      if (currentFocus < 0) currentFocus = items.length - 1;
+      items[currentFocus].classList.add('highlighted');
+      items[currentFocus].scrollIntoView({ block: 'nearest' });
+    };
+
+    const removeHighlight = (items) => {
+      items.forEach(item => item.classList.remove('highlighted'));
+    };
+
+    const saveRecentDept = (dept) => {
+      let recent = [];
+      try {
+        recent = JSON.parse(localStorage.getItem('campusos_recent_depts')) || [];
+      } catch (e) {}
+      recent = recent.filter(d => d !== dept);
+      recent.unshift(dept);
+      recent = recent.slice(0, 3);
+      localStorage.setItem('campusos_recent_depts', JSON.stringify(recent));
+      renderRecentDepts();
+    };
+
+    const renderRecentDepts = () => {
+      let recent = [];
+      try {
+        recent = JSON.parse(localStorage.getItem('campusos_recent_depts')) || [];
+      } catch (e) {}
+      const container = document.getElementById('recent-suggestions');
+      if (!container) return;
+      
+      if (recent.length > 0) {
+        container.style.display = 'block';
+        const listDiv = container.querySelector('.recent-suggestions-list');
+        listDiv.innerHTML = recent.map(dept => `
+          <button type="button" class="recent-suggestion-chip">${dept}</button>
+        `).join('');
+        
+        listDiv.querySelectorAll('.recent-suggestion-chip').forEach(btn => {
+          btn.addEventListener('click', () => {
+            deptInput.value = btn.textContent;
+            validateDept();
+            updateFormProgress();
+            saveRecentDept(btn.textContent);
+          });
+        });
+      } else {
+        container.style.display = 'none';
+      }
+    };
+
+    const validateYear = () => {
+      const val = yearInput.value;
+      const badge = document.getElementById('year-validation');
+      
+      yearTrigger.classList.remove('invalid');
+      
+      if (val) {
+        states.year = true;
+        badge.className = 'validation-badge success';
+        badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> Academic year selected';
+      } else {
+        states.year = false;
+        badge.className = 'validation-badge neutral';
+        badge.innerHTML = '<i class="fa-solid fa-circle-info"></i> Select academic year';
+      }
+    };
+
+    yearTrigger.addEventListener('click', (e) => {
+      yearDropdown.classList.toggle('active');
+      yearTrigger.classList.toggle('active');
+      if (yearDropdown.classList.contains('active')) {
+        yearSearch.value = '';
+        yearOptions.forEach(o => o.style.display = 'block');
+        yearSearch.focus();
+      }
+      e.stopPropagation();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!yearTrigger.contains(e.target) && !yearDropdown.contains(e.target)) {
+        yearDropdown.classList.remove('active');
+        yearTrigger.classList.remove('active');
+      }
+    });
+
+    yearOptions.forEach(opt => {
+      opt.addEventListener('click', () => {
+        const val = opt.getAttribute('data-value');
+        const text = opt.textContent;
+        
+        yearInput.value = val;
+        yearTriggerText.textContent = text;
+        
+        yearOptions.forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        
+        yearDropdown.classList.remove('active');
+        yearTrigger.classList.remove('active');
+        
+        validateYear();
+        updateFormProgress();
+      });
+    });
+
+    yearSearch.addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      yearOptions.forEach(opt => {
+        const text = opt.textContent.toLowerCase();
+        if (text.includes(q)) {
+          opt.style.display = 'block';
+        } else {
+          opt.style.display = 'none';
+        }
+      });
+    });
+
+    yearTrigger.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
+        yearDropdown.classList.add('active');
+        yearTrigger.classList.add('active');
+        yearSearch.focus();
+        e.preventDefault();
+      }
+    });
+
+    yearSearch.addEventListener('keydown', (e) => {
+      const visibleOpts = Array.from(yearOptions).filter(o => o.style.display !== 'none');
+      if (visibleOpts.length === 0) return;
+      
+      let selectFocus = visibleOpts.findIndex(o => o.classList.contains('highlighted'));
+      
+      if (e.key === 'ArrowDown') {
+        selectFocus++;
+        if (selectFocus >= visibleOpts.length) selectFocus = 0;
+        visibleOpts.forEach(o => o.classList.remove('highlighted'));
+        visibleOpts[selectFocus].classList.add('highlighted');
+        visibleOpts[selectFocus].scrollIntoView({ block: 'nearest' });
+        e.preventDefault();
+      } else if (e.key === 'ArrowUp') {
+        selectFocus--;
+        if (selectFocus < 0) selectFocus = visibleOpts.length - 1;
+        visibleOpts.forEach(o => o.classList.remove('highlighted'));
+        visibleOpts[selectFocus].classList.add('highlighted');
+        visibleOpts[selectFocus].scrollIntoView({ block: 'nearest' });
+        e.preventDefault();
+      } else if (e.key === 'Enter') {
+        if (selectFocus > -1 && visibleOpts[selectFocus]) {
+          visibleOpts[selectFocus].click();
+          e.preventDefault();
+        }
+      } else if (e.key === 'Escape') {
+        yearDropdown.classList.remove('active');
+        yearTrigger.classList.remove('active');
+        yearTrigger.focus();
+        e.preventDefault();
+      }
+    });
+
+    renderRecentDepts();
+    
+    if (isEditMode) {
+      validateName();
+      validateEmail();
+      validateDept();
+      
+      if (initialYear) {
+        yearInput.value = initialYear;
+        const matchingOpt = Array.from(yearOptions).find(o => o.getAttribute('data-value') === String(initialYear));
+        if (matchingOpt) {
+          yearTriggerText.textContent = matchingOpt.textContent;
+          matchingOpt.classList.add('selected');
+        }
+        validateYear();
+      }
+      updateFormProgress();
+    }
+  }
+
   validateForm() {
     let isValid = true;
 
@@ -1127,39 +1610,59 @@ class AppController {
     const emailInput = document.getElementById('form-email');
     const deptInput = document.getElementById('form-dept');
     const yearSelect = document.getElementById('form-year');
+    const yearTrigger = document.getElementById('year-trigger');
 
-    const controls = [nameInput, emailInput, deptInput, yearSelect];
-    controls.forEach(control => control.classList.remove('invalid'));
+    nameInput.classList.remove('invalid');
+    emailInput.classList.remove('invalid');
+    deptInput.classList.remove('invalid');
+    yearSelect.classList.remove('invalid');
+    if (yearTrigger) yearTrigger.classList.remove('invalid');
 
     if (!nameInput.value.trim()) {
       nameInput.classList.add('invalid');
+      const badge = document.getElementById('name-validation');
+      if (badge) {
+        badge.className = 'validation-badge error';
+        badge.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Name is required';
+      }
       isValid = false;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailInput.value.trim() || !emailRegex.test(emailInput.value.trim())) {
       emailInput.classList.add('invalid');
-      document.getElementById('email-error').textContent = 'Please enter a valid school email address.';
+      const badge = document.getElementById('email-validation');
+      if (badge) {
+        badge.className = 'validation-badge error';
+        badge.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Please enter a valid email format';
+      }
       isValid = false;
     }
 
     if (!deptInput.value.trim()) {
       deptInput.classList.add('invalid');
+      const badge = document.getElementById('dept-validation');
+      if (badge) {
+        badge.className = 'validation-badge error';
+        badge.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Department is required';
+      }
       isValid = false;
     }
 
     if (!yearSelect.value) {
       yearSelect.classList.add('invalid');
+      if (yearTrigger) yearTrigger.classList.add('invalid');
+      const badge = document.getElementById('year-validation');
+      if (badge) {
+        badge.className = 'validation-badge error';
+        badge.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Academic year is required';
+      }
       isValid = false;
     }
 
     return isValid;
   }
 
-  /**
-   * Submits data to REST APIs and manages active button spinner states.
-   * @param {number|null} id - Student ID or null
-   */
   async submitStudentData(id) {
     const btnSubmit = document.getElementById('btn-form-submit');
     const nameInput = document.getElementById('form-name');
@@ -1181,24 +1684,45 @@ class AppController {
       if (id) {
         await window.studentApi.update(id, payload);
         this.showToast('Student updated successfully');
+        this.renderFormSuccess(id, payload.name, true);
       } else {
         await window.studentApi.create(payload);
         this.showToast('Student added successfully');
+        this.renderFormSuccess(null, payload.name, false);
       }
-
-      window.location.hash = '#/students';
     } catch (err) {
       if (err.errors && err.errors.length > 0) {
         err.errors.forEach(valErr => {
           if (valErr.field === 'email') {
             emailInput.classList.add('invalid');
-            document.getElementById('email-error').textContent = valErr.message;
+            const badge = document.getElementById('email-validation');
+            if (badge) {
+              badge.className = 'validation-badge error';
+              badge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> ${valErr.message}`;
+            }
           } else if (valErr.field === 'name') {
             nameInput.classList.add('invalid');
+            const badge = document.getElementById('name-validation');
+            if (badge) {
+              badge.className = 'validation-badge error';
+              badge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> ${valErr.message}`;
+            }
           } else if (valErr.field === 'department') {
             deptInput.classList.add('invalid');
+            const badge = document.getElementById('dept-validation');
+            if (badge) {
+              badge.className = 'validation-badge error';
+              badge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> ${valErr.message}`;
+            }
           } else if (valErr.field === 'year') {
             yearSelect.classList.add('invalid');
+            const yearTrigger = document.getElementById('year-trigger');
+            if (yearTrigger) yearTrigger.classList.add('invalid');
+            const badge = document.getElementById('year-validation');
+            if (badge) {
+              badge.className = 'validation-badge error';
+              badge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> ${valErr.message}`;
+            }
           }
         });
         this.showToast('Validation failed', 'error');
@@ -1208,6 +1732,38 @@ class AppController {
     } finally {
       btnSubmit.disabled = false;
       btnSubmit.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> ${id ? 'Apply Changes' : 'Enroll Student'}`;
+    }
+  }
+
+  renderFormSuccess(id, studentName, isEditMode = false) {
+    const target = document.getElementById('portal-content-area') || this.viewTarget;
+    
+    target.innerHTML = `
+      <div class="form-wrapper">
+        <div class="form-card onboarding-success-screen">
+          <div class="success-check-icon">
+            <i class="fa-solid fa-check"></i>
+          </div>
+          <h2 class="success-title">${isEditMode ? 'Profile Updated' : 'Record Enrolled'}</h2>
+          <p class="success-desc">
+            Student profile for <strong>${studentName}</strong> has been successfully ${isEditMode ? 'updated in' : 'added to'} the secure registry database.
+          </p>
+          
+          <div style="display: flex; gap: 16px; justify-content: center; max-width: 320px; margin: 0 auto;">
+            ${isEditMode 
+              ? `<a href="#/students" class="btn btn-primary btn-sm">Catalog Directory</a>`
+              : `<button type="button" class="btn btn-primary btn-sm" id="btn-success-reset">Register Another</button>
+                 <a href="#/students" class="btn btn-secondary btn-sm">Catalog Directory</a>`
+            }
+          </div>
+        </div>
+      </div>
+    `;
+    
+    if (!isEditMode) {
+      document.getElementById('btn-success-reset').addEventListener('click', () => {
+        this.renderAddStudentForm(target);
+      });
     }
   }
 }
