@@ -18,6 +18,7 @@
   --primary-color: #e2b76c;
   --primary-gradient: linear-gradient(135deg, #e2b76c 0%, #b45309 100%);
   --sidebar-gradient: linear-gradient(180deg, rgba(226, 183, 108, 0.03) 0%, rgba(10, 10, 10, 0) 100%);
+  --btn-hover-bg: rgba(226, 183, 108, 0.05);
   
   --success-color: #10b981;
   --danger-color: #ef4444;
@@ -1232,6 +1233,94 @@ select.input-field option {
 }
 
 /* ==========================================================================
+   Campus.OS Premium Pagination Styling
+   ========================================================================== */
+.grid-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-glow);
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pagination-info {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+.pagination-info strong {
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pagination-btn,
+.page-num {
+  background: transparent;
+  border: 1px solid var(--border-glow);
+  color: var(--text-secondary);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  min-width: 32px;
+  padding: 0 8px;
+  transition: var(--transition-fast);
+  outline: none;
+  user-select: none;
+}
+
+.pagination-btn:hover,
+.page-num:hover {
+  border-color: var(--primary-color);
+  color: var(--text-main);
+  background-color: var(--btn-hover-bg);
+}
+
+.page-num.active {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background-color: var(--btn-hover-bg);
+  font-weight: 700;
+}
+
+.pagination-btn[disabled] {
+  opacity: 0.25;
+  cursor: not-allowed;
+  border-color: var(--border-glow);
+  color: var(--text-muted);
+  background: transparent;
+}
+
+.pagination-btn[disabled]:hover {
+  border-color: var(--border-glow);
+  color: var(--text-muted);
+  background: transparent;
+}
+
+/* ==========================================================================
    Light Mode prefers-color-scheme overrides
    ========================================================================== */
 @media (prefers-color-scheme: light) {
@@ -1249,6 +1338,7 @@ select.input-field option {
     --primary-color: #b45309;
     --primary-gradient: linear-gradient(135deg, #b45309 0%, #78350f 100%);
     --sidebar-gradient: linear-gradient(180deg, rgba(180, 83, 9, 0.03) 0%, rgba(243, 244, 246, 0) 100%);
+    --btn-hover-bg: rgba(180, 83, 9, 0.05);
     
     --success-color: #059669;
     --danger-color: #dc2626;

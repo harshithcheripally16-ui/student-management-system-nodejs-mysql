@@ -698,9 +698,9 @@ class AppController {
       document.getElementById('grid-container').innerHTML = `
         <div class="empty-state-screen glassmorphic-card">
           <i class="fa-solid fa-users-slash"></i>
-          <h2>No students enrolled</h2>
-          <p>Enrolling your first student record will populate the directory database.</p>
-          <a href="#/students/add" class="btn btn-glow btn-sm">Add First Student</a>
+          <h2>No students registered yet.</h2>
+          <p>Register a student record to populate the directory database.</p>
+          <a href="#/students/add" class="btn btn-glow btn-sm">Register Student</a>
         </div>
       `;
       return;
@@ -767,6 +767,20 @@ class AppController {
     const totalPages = Math.ceil(totalStudents / this.itemsPerPage);
     const endIndex = Math.min(startIndex + this.itemsPerPage, totalStudents);
 
+    // If totalPages <= 1, hide controls (Previous, Next, page numbers) but show info if there are entries
+    if (totalPages <= 1) {
+      if (totalStudents > 0) {
+        paginationContainer.innerHTML = `
+          <div class="pagination-info">
+            Showing <strong>${startIndex + 1}</strong> to <strong>${endIndex}</strong> of <strong>${totalStudents}</strong> entries
+          </div>
+        `;
+      } else {
+        paginationContainer.innerHTML = '';
+      }
+      return;
+    }
+
     let pagesHtml = '';
     const maxVisiblePages = 5;
     let startPage = Math.max(1, this.currentPage - 2);
@@ -778,22 +792,22 @@ class AppController {
 
     for (let i = startPage; i <= endPage; i++) {
       pagesHtml += `
-        <button class="page-num ${this.currentPage === i ? 'active' : ''}" data-page="${i}">${i}</button>
+        <button class="page-num ${this.currentPage === i ? 'active' : ''}" data-page="${i}" aria-label="Page ${i}">${i}</button>
       `;
     }
 
     paginationContainer.innerHTML = `
-      <div class="pagination-info" style="font-size: 13px; color: var(--text-secondary);">
+      <div class="pagination-info">
         Showing <strong>${startIndex + 1}</strong> to <strong>${endIndex}</strong> of <strong>${totalStudents}</strong> entries
       </div>
       <div class="pagination-controls">
-        <button class="pagination-btn" id="btn-page-prev" ${this.currentPage === 1 ? 'disabled' : ''}>
+        <button class="pagination-btn" id="btn-page-prev" ${this.currentPage === 1 ? 'disabled' : ''} aria-label="Previous Page">
           <i class="fa-solid fa-angle-left"></i>
         </button>
         <div class="pagination-pages">
           ${pagesHtml}
         </div>
-        <button class="pagination-btn" id="btn-page-next" ${this.currentPage === totalPages ? 'disabled' : ''}>
+        <button class="pagination-btn" id="btn-page-next" ${this.currentPage === totalPages ? 'disabled' : ''} aria-label="Next Page">
           <i class="fa-solid fa-angle-right"></i>
         </button>
       </div>
