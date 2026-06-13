@@ -1,7 +1,7 @@
 /**
  * Academix Student Portal Frontend Engine
  * Implements client-side Hash Router, SaaS Landing layout, Dashboard Analytics,
- * Profile Card Grids, Slide-Out details Drawer, GSAP transitions, and Chart.js.
+ * Profile Card Grids, Slide-Out details Drawer, CSS transitions, and Chart.js.
  */
 
 class AppController {
@@ -81,15 +81,6 @@ class AppController {
     overlay.classList.add('active');
     drawer.classList.add('active');
     
-    // GSAP micro-animation for drawer contents
-    gsap.from(".drawer-profile-avatar, .drawer-profile-name, .drawer-info-row, .drawer-actions-box", {
-      opacity: 0,
-      x: 30,
-      duration: 0.4,
-      stagger: 0.05,
-      ease: "power2.out",
-      delay: 0.1
-    });
   }
 
   /**
@@ -124,15 +115,10 @@ class AppController {
     
     // Auto remove
     setTimeout(() => {
-      // Animate out with GSAP before removing
-      gsap.to(toast, {
-        x: 100,
-        opacity: 0,
-        duration: 0.3,
-        onComplete: () => {
-          toast.remove();
-          this.activeToasts.delete(message);
-        }
+      toast.classList.add('fade-out');
+      toast.addEventListener('animationend', () => {
+        toast.remove();
+        this.activeToasts.delete(message);
       });
     }, 3500);
   }
@@ -249,24 +235,6 @@ class AppController {
       </div>
     `;
 
-    // GSAP Landing Page load animation
-    gsap.from(".landing-nav", { opacity: 0, y: -20, duration: 0.6, ease: "power2.out" });
-    gsap.from(".hero-tag, .hero-title, .hero-subtitle, .hero-ctas", {
-      opacity: 0,
-      y: 40,
-      duration: 0.8,
-      stagger: 0.15,
-      ease: "power3.out"
-    });
-    gsap.from(".landing-stat-card", {
-      opacity: 0,
-      scale: 0.95,
-      y: 20,
-      duration: 0.6,
-      stagger: 0.1,
-      ease: "power2.out",
-      delay: 0.6
-    });
   }
 
   /* ==========================================================================
@@ -342,12 +310,6 @@ class AppController {
         sidebar.classList.toggle('active');
       });
 
-      // Highlight active sidebar item
-      this.updateSidebarActiveItem(activeHash);
-
-      // GSAP portal shell enter animation
-      gsap.from("#sidebar", { opacity: 0, x: -30, duration: 0.6, ease: "power2.out" });
-      gsap.from(".portal-main", { opacity: 0, x: 30, duration: 0.6, ease: "power2.out" });
     }
 
     // Dynamically inject target view
@@ -476,10 +438,6 @@ class AppController {
         </div>
       `;
 
-      // GSAP load stats
-      gsap.from(".kpi-card", { opacity: 0, y: 15, duration: 0.4, stagger: 0.1, ease: "power2.out" });
-      gsap.from(".dashboard-visuals-grid .glassmorphic-card", { opacity: 0, y: 20, duration: 0.5, stagger: 0.15, ease: "power2.out", delay: 0.2 });
-
       // Initialize charts
       this.initDashboardCharts();
     } catch (error) {
@@ -507,6 +465,29 @@ class AppController {
     const doughnutCtx = document.getElementById('deptDoughnutChart');
 
     if (!lineCtx || !doughnutCtx) return;
+
+    // Graceful fallback if Chart.js fails to load
+    if (typeof Chart === 'undefined') {
+      const lineContainer = lineCtx.parentElement;
+      const doughnutContainer = doughnutCtx.parentElement;
+      if (lineContainer) {
+        lineContainer.innerHTML = `
+          <div class="chart-fallback" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary); text-align: center; gap: 8px;">
+            <i class="fa-solid fa-chart-line" style="font-size: 24px;"></i>
+            <span>Analytics charts unavailable (Chart.js failed to load)</span>
+          </div>
+        `;
+      }
+      if (doughnutContainer) {
+        doughnutContainer.innerHTML = `
+          <div class="chart-fallback" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary); text-align: center; gap: 8px;">
+            <i class="fa-solid fa-chart-pie" style="font-size: 24px;"></i>
+            <span>Analytics charts unavailable (Chart.js failed to load)</span>
+          </div>
+        `;
+      }
+      return;
+    }
 
     // 1. Line Chart Data setup: Group enrollment counts by date
     const dateGroups = {};
@@ -787,15 +768,7 @@ class AppController {
       `;
     }).join('');
 
-    // GSAP load cards animation
-    gsap.from(".profile-card", {
-      opacity: 0,
-      scale: 0.96,
-      y: 15,
-      duration: 0.4,
-      stagger: 0.05,
-      ease: "power2.out"
-    });
+
 
     // Bind card click listener to open the slide drawer
     const cards = gridContainer.querySelectorAll('.profile-card');
@@ -1029,8 +1002,7 @@ class AppController {
       </div>
     `;
 
-    // GSAP form loader
-    gsap.from(".form-card", { opacity: 0, scale: 0.98, y: 15, duration: 0.5, ease: "power2.out" });
+
 
     const form = document.getElementById('student-form');
     // Clear invalid states on typing
@@ -1117,8 +1089,7 @@ class AppController {
         </div>
       `;
 
-      // GSAP form loader
-      gsap.from(".form-card", { opacity: 0, scale: 0.98, y: 15, duration: 0.5, ease: "power2.out" });
+
 
       const form = document.getElementById('student-form');
       // Clear invalid states on typing
