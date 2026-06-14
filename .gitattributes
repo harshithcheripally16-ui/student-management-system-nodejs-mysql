@@ -1,0 +1,4 @@
+# GitHub Linguist Overrides
+# Force SQL files (schema and setup files) to be detected in language statistics
+*.sql linguist-detectable=true
+*.sql linguist-language=SQL
