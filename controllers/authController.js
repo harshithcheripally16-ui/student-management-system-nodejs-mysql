@@ -100,6 +100,16 @@ class AuthController {
         });
       }
 
+      // Verify email status
+      if (!user.is_verified) {
+        return res.status(403).json({
+          success: false,
+          isVerified: false,
+          email: user.email,
+          message: 'Please verify your email before accessing Campus.OS'
+        });
+      }
+
       // Generate session token (Remember Me expands expiry to 30 days)
       const tokenExpiry = rememberMe ? '30d' : '2h';
       const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: tokenExpiry });

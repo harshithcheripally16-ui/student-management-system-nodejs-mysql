@@ -2108,6 +2108,22 @@ select.input-field option {
   margin: 0 auto 12px auto;
 }
 
+.auth-error-banner {
+  background-color: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 4px;
+  padding: 12px 14px;
+  color: var(--danger-color);
+  font-size: 13.5px;
+  font-family: var(--font-ui);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  text-align: center;
+  line-height: 1.5;
+}
+
 .verification-status-icon {
   width: 64px;
   height: 64px;
@@ -2237,6 +2253,11 @@ body.light-theme .auth-card .input-field:focus {
 body.light-theme .auth-card .input-field.invalid {
   border-color: var(--danger-color);
   box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
+}
+
+body.light-theme .auth-error-banner {
+  background-color: rgba(220, 38, 38, 0.05);
+  border-color: rgba(220, 38, 38, 0.15);
 }
 
 /* ==========================================================================

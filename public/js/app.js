@@ -183,7 +183,7 @@ class AppController {
       }
 
       // Guest routes list
-      const guestRoutes = ['#/login', '#/register', '#/forgot-password', '#/landing', '#/'];
+      const guestRoutes = ['#/login', '#/register', '#/forgot-password', '#/landing', '#/', '#/check-email'];
 
       // Redirect logic based on Auth status
       if (!this.currentUser) {
@@ -193,10 +193,19 @@ class AppController {
           return;
         }
       } else {
-        // Logged in redirects: if accessing login/register, send to dashboard
-        if (hash === '#/login' || hash === '#/register' || hash === '#/forgot-password') {
-          window.location.hash = '#/dashboard';
-          return;
+        // Logged in redirects:
+        if (!this.currentUser.is_verified) {
+          // Unverified user: can only access logout, verification-required page, or verify-email
+          if (hash !== '#/verification-required' && hash !== '#/logout' && !isVerifyEmail) {
+            window.location.hash = '#/verification-required';
+            return;
+          }
+        } else {
+          // Verified user: if accessing guest/auth screens, send to dashboard
+          if (hash === '#/login' || hash === '#/register' || hash === '#/forgot-password' || hash === '#/verification-required') {
+            window.location.hash = '#/dashboard';
+            return;
+          }
         }
       }
 
@@ -211,6 +220,14 @@ class AppController {
       }
       if (hash === '#/forgot-password') {
         this.renderForgotPasswordPage();
+        return;
+      }
+      if (hash === '#/check-email') {
+        this.renderCheckEmailPage();
+        return;
+      }
+      if (hash === '#/verification-required') {
+        this.renderVerificationRequiredPage();
         return;
       }
       if (isVerifyEmail) {
@@ -2187,6 +2204,8 @@ class AppController {
               <a href="#/forgot-password" class="auth-link">Forgot password?</a>
             </div>
             
+            <div id="login-error-container" style="display:none; margin-bottom: 16px;"></div>
+            
             <button type="submit" class="btn btn-primary" id="btn-login-submit">
               Sign In to Dashboard
             </button>
@@ -2220,10 +2239,12 @@ class AppController {
       const email = document.getElementById('login-email').value.trim();
       const password = passInput.value;
       const rememberMe = document.getElementById('login-remember').checked;
+      const errorContainer = document.getElementById('login-error-container');
 
       try {
         btnSubmit.disabled = true;
         btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Authenticating...';
+        errorContainer.style.display = 'none';
 
         const res = await window.studentApi.login({ email, password, rememberMe });
         
@@ -2238,7 +2259,34 @@ class AppController {
           window.location.hash = '#/dashboard';
         }
       } catch (err) {
-        this.showToast(err.message, 'error');
+        if (err.status === 403 || (err.message && err.message.includes('verify your email'))) {
+          errorContainer.style.display = 'block';
+          errorContainer.innerHTML = `
+            <div class="auth-error-banner">
+              <span>${err.message}</span>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-login-resend">
+                Resend Verification Email
+              </button>
+            </div>
+          `;
+          const btnResend = document.getElementById('btn-login-resend');
+          btnResend.addEventListener('click', async () => {
+            try {
+              btnResend.disabled = true;
+              btnResend.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Resending...';
+              await window.studentApi.resendVerification(email);
+              this.showToast('Verification link resent. Please check your inbox.');
+            } catch (resendErr) {
+              this.showToast(resendErr.message, 'error');
+            } finally {
+              btnResend.disabled = false;
+              btnResend.innerHTML = 'Resend Verification Email';
+            }
+          });
+        } else {
+          errorContainer.style.display = 'none';
+          this.showToast(err.message, 'error');
+        }
       } finally {
         btnSubmit.disabled = false;
         btnSubmit.innerHTML = 'Sign In to Dashboard';
@@ -2386,7 +2434,7 @@ class AppController {
         const res = await window.studentApi.register({ name, email, password });
         if (res.success) {
           this.showToast('Registration successful! Verification email sent.');
-          window.location.hash = '#/login';
+          window.location.hash = '#/check-email';
         }
       } catch (err) {
         this.showToast(err.message, 'error');
@@ -2563,6 +2611,73 @@ class AppController {
         btnSubmit.innerHTML = 'Apply New Password';
       }
     });
+  }
+
+  renderCheckEmailPage() {
+    this.viewTarget.innerHTML = `
+      <div class="auth-wrapper">
+        <div class="auth-card">
+          <div class="auth-header">
+            <div class="auth-brand">Campus<span>.OS</span></div>
+            <h2 class="auth-title">Check Your Email</h2>
+            <p class="auth-subtitle">A verification link has been dispatched to your inbox</p>
+          </div>
+          
+          <div class="auth-card-notice">
+            <div class="verification-status-icon success" style="background-color: rgba(16, 185, 129, 0.1); color: rgb(16, 185, 129); border: 1px solid rgba(16, 185, 129, 0.2); width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px auto; font-size: 28px;">
+              <i class="fa-solid fa-envelope-open-text"></i>
+            </div>
+            <p style="margin-bottom: 20px;">We have sent an email containing an activation link. Please click on the link to verify your account and unlock access to the Campus.OS workspace.</p>
+          </div>
+          
+          <a href="#/login" class="btn btn-secondary">Back to Sign In</a>
+        </div>
+      </div>
+    `;
+  }
+
+  renderVerificationRequiredPage() {
+    this.viewTarget.innerHTML = `
+      <div class="auth-wrapper">
+        <div class="auth-card">
+          <div class="auth-header">
+            <div class="auth-brand">Campus<span>.OS</span></div>
+            <h2 class="auth-title">Verification Required</h2>
+            <p class="auth-subtitle">Your email address must be verified first</p>
+          </div>
+          
+          <div class="auth-card-notice">
+            <div class="verification-status-icon error" style="background-color: rgba(239, 68, 68, 0.1); color: rgb(239, 68, 68); border: 1px solid rgba(239, 68, 68, 0.2); width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px auto; font-size: 28px;">
+              <i class="fa-solid fa-envelope-circle-check"></i>
+            </div>
+            <p style="margin-bottom: 20px;">You cannot access the Campus.OS dashboard, catalog, or registration systems until your email address is verified.</p>
+          </div>
+          
+          <button class="btn btn-primary" id="btn-verification-resend" style="margin-bottom: 12px;">
+            Resend Verification Email
+          </button>
+          
+          <a href="#/logout" class="btn btn-secondary">Sign Out</a>
+        </div>
+      </div>
+    `;
+
+    const btnResend = document.getElementById('btn-verification-resend');
+    if (btnResend) {
+      btnResend.addEventListener('click', async () => {
+        try {
+          btnResend.disabled = true;
+          btnResend.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending link...';
+          await window.studentApi.resendVerification(this.currentUser.email);
+          this.showToast('Verification link resent. Please check your inbox.');
+        } catch (err) {
+          this.showToast(err.message, 'error');
+        } finally {
+          btnResend.disabled = false;
+          btnResend.innerHTML = 'Resend Verification Email';
+        }
+      });
+    }
   }
 
   async renderVerifyEmailPage(token) {
