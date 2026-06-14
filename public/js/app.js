@@ -2163,16 +2163,16 @@ class AppController {
           </div>
           
           <form id="login-form">
-            <div class="form-group active-section-focus" style="margin-bottom: 20px;">
+            <div class="form-group">
               <label class="input-label" for="login-email">Email Address</label>
-              <input type="email" class="input-field" id="login-email" required placeholder="admin@campusos.edu">
+              <input type="email" class="input-field" id="login-email" required placeholder="admin@campusos.edu" autocomplete="username email">
               <div id="login-email-badge" class="validation-badge" style="display:none;"></div>
             </div>
             
-            <div class="form-group active-section-focus" style="margin-bottom: 24px;">
+            <div class="form-group">
               <label class="input-label" for="login-password">Password</label>
               <div class="password-input-wrapper">
-                <input type="password" class="input-field" id="login-password" required placeholder="Enter password">
+                <input type="password" class="input-field" id="login-password" required placeholder="Enter password" autocomplete="current-password">
                 <button type="button" class="btn-toggle-password" id="btn-toggle-login-pass">
                   <i class="fa-solid fa-eye"></i>
                 </button>
@@ -2187,7 +2187,7 @@ class AppController {
               <a href="#/forgot-password" class="auth-link">Forgot password?</a>
             </div>
             
-            <button type="submit" class="btn btn-primary" id="btn-login-submit" style="width: 100%; padding: 14px; justify-content: center;">
+            <button type="submit" class="btn btn-primary" id="btn-login-submit">
               Sign In to Dashboard
             </button>
           </form>
@@ -2257,21 +2257,21 @@ class AppController {
           </div>
           
           <form id="register-form">
-            <div class="form-group active-section-focus" style="margin-bottom: 20px;">
+            <div class="form-group">
               <label class="input-label" for="reg-name">Full Name</label>
-              <input type="text" class="input-field" id="reg-name" required placeholder="John Doe">
+              <input type="text" class="input-field" id="reg-name" required placeholder="John Doe" autocomplete="name">
             </div>
             
-            <div class="form-group active-section-focus" style="margin-bottom: 20px;">
+            <div class="form-group">
               <label class="input-label" for="reg-email">Email Address</label>
-              <input type="email" class="input-field" id="reg-email" required placeholder="admin@campusos.edu">
-              <div id="reg-email-badge" class="validation-badge" style="margin-top: 6px;"></div>
+              <input type="email" class="input-field" id="reg-email" required placeholder="admin@campusos.edu" autocomplete="email">
+              <div id="reg-email-badge" class="validation-badge" style="display: none;"></div>
             </div>
             
-            <div class="form-group active-section-focus" style="margin-bottom: 24px;">
+            <div class="form-group">
               <label class="input-label" for="reg-password">Password</label>
               <div class="password-input-wrapper">
-                <input type="password" class="input-field" id="reg-password" required placeholder="Minimum 6 characters">
+                <input type="password" class="input-field" id="reg-password" required placeholder="Minimum 6 characters" autocomplete="new-password">
                 <button type="button" class="btn-toggle-password" id="btn-toggle-reg-pass">
                   <i class="fa-solid fa-eye"></i>
                 </button>
@@ -2284,7 +2284,7 @@ class AppController {
               </div>
             </div>
             
-            <button type="submit" class="btn btn-primary" id="btn-reg-submit" style="width: 100%; padding: 14px; justify-content: center;">
+            <button type="submit" class="btn btn-primary" id="btn-reg-submit">
               Register Account
             </button>
           </form>
@@ -2408,12 +2408,12 @@ class AppController {
           </div>
           
           <form id="forgot-form">
-            <div class="form-group active-section-focus" style="margin-bottom: 24px;">
+            <div class="form-group">
               <label class="input-label" for="forgot-email">Email Address</label>
-              <input type="email" class="input-field" id="forgot-email" required placeholder="admin@campusos.edu">
+              <input type="email" class="input-field" id="forgot-email" required placeholder="admin@campusos.edu" autocomplete="email">
             </div>
             
-            <button type="submit" class="btn btn-primary" id="btn-forgot-submit" style="width: 100%; padding: 14px; justify-content: center;">
+            <button type="submit" class="btn btn-primary" id="btn-forgot-submit">
               Send Recovery Link
             </button>
           </form>
@@ -2439,13 +2439,13 @@ class AppController {
         if (res.success) {
           this.showToast('Password reset email recovery triggered.');
           document.getElementById('forgot-form').innerHTML = `
-            <div style="text-align: center; margin: 24px 0; color: var(--text-main); font-family: var(--font-ui); font-size: 14px; line-height:1.6;">
-              <div class="verification-status-icon success" style="width:48px; height:48px; font-size:20px; margin-bottom:16px;">
+            <div class="auth-card-notice">
+              <div class="verification-status-icon success">
                 <i class="fa-solid fa-paper-plane"></i>
               </div>
               <p>An email recovery link has been issued. Please check your inbox to update your password profile.</p>
             </div>
-            <a href="#/login" class="btn btn-secondary" style="width: 100%; text-align: center; display: block;">Back to Login</a>
+            <a href="#/login" class="btn btn-secondary">Back to Login</a>
           `;
         }
       } catch (err) {
@@ -2468,10 +2468,10 @@ class AppController {
           </div>
           
           <form id="reset-form">
-            <div class="form-group active-section-focus" style="margin-bottom: 24px;">
+            <div class="form-group">
               <label class="input-label" for="reset-password">New Password</label>
               <div class="password-input-wrapper">
-                <input type="password" class="input-field" id="reset-password" required placeholder="Minimum 6 characters">
+                <input type="password" class="input-field" id="reset-password" required placeholder="Minimum 6 characters" autocomplete="new-password">
                 <button type="button" class="btn-toggle-password" id="btn-toggle-reset-pass">
                   <i class="fa-solid fa-eye"></i>
                 </button>
@@ -2484,7 +2484,7 @@ class AppController {
               </div>
             </div>
             
-            <button type="submit" class="btn btn-primary" id="btn-reset-submit" style="width: 100%; padding: 14px; justify-content: center;">
+            <button type="submit" class="btn btn-primary" id="btn-reset-submit">
               Apply New Password
             </button>
           </form>
@@ -2595,7 +2595,7 @@ class AppController {
           <p class="verification-status-desc">
             Your email address has been successfully verified. Administrative privileges have been activated.
           </p>
-          <a href="#/dashboard" class="btn btn-primary" style="width: 100%; text-align: center; display: block;">Go to Dashboard</a>
+          <a href="#/dashboard" class="btn btn-primary">Go to Dashboard</a>
         `;
       }
     } catch (err) {
@@ -2607,8 +2607,8 @@ class AppController {
         <p class="verification-status-desc">
           ${err.message || 'The verification link has expired, is invalid, or has already been used.'}
         </p>
-        <div style="display: flex; flex-direction: column; gap: 12px;">
-          <a href="#/login" class="btn btn-secondary" style="width: 100%; text-align: center; display: block;">Back to Sign In</a>
+        <div class="form-group">
+          <a href="#/login" class="btn btn-secondary">Back to Sign In</a>
         </div>
       `;
     }

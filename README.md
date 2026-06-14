@@ -4,7 +4,7 @@ CampusOS is a sleek, modern, and portfolio-grade Student Directory and registry 
 
 Designed with an editorial, minimalist aesthetic inspired by modern design agencies, CampusOS aims to present academic administration tools with maximum craftsmanship.
 
-![CampusOS Dashboard](screenshots/dashboard.png)
+![CampusOS UI](Website_screenshot.png)
 
 ## Features
 

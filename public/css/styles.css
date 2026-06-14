@@ -1537,7 +1537,8 @@ select.input-field option {
   transition: color var(--transition-fast);
 }
 
-.validation-badge.success {
+.validation-badge.success,
+.validation-badge.valid {
   color: var(--success-color);
 }
 
@@ -1786,18 +1787,18 @@ select.input-field option {
 
 .auth-card {
   width: 100%;
-  max-width: 440px;
+  max-width: 400px;
   background-color: var(--bg-card);
   border: 1px solid var(--border-glow);
   border-radius: 6px;
-  padding: 48px 40px;
+  padding: 32px 28px;
   box-shadow: var(--shadow-premium);
   transition: background-color var(--transition-slow), border-color var(--transition-slow);
 }
 
 .auth-header {
   text-align: center;
-  margin-bottom: 36px;
+  margin-bottom: 20px;
 }
 
 .auth-brand {
@@ -1818,7 +1819,7 @@ select.input-field option {
   font-size: 20px;
   font-weight: 600;
   color: var(--text-main);
-  margin-top: 12px;
+  margin-top: 8px;
   margin-bottom: 4px;
 }
 
@@ -1828,23 +1829,117 @@ select.input-field option {
   color: var(--text-muted);
 }
 
+/* Auth specific form group controls */
+.auth-card .form-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.auth-card .input-label {
+  align-self: flex-start;
+  margin-bottom: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-secondary);
+}
+
+/* Box-border auth inputs instead of bottom-only border */
+.auth-card .input-field {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  background-color: rgba(255, 255, 255, 0.015);
+  border: 1px solid var(--border-glow);
+  border-radius: 4px;
+  color: var(--text-main);
+  outline: none;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+
+.auth-card .input-field::placeholder {
+  color: var(--text-muted);
+}
+
+.auth-card .input-field:focus {
+  border-color: rgba(226, 183, 108, 0.5);
+  box-shadow: 0 0 0 3px rgba(226, 183, 108, 0.06);
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.auth-card .input-field.invalid {
+  border-color: var(--danger-color);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
+}
+
+/* Autofill Overrides for Dark Mode */
+.auth-card .input-field:-webkit-autofill,
+.auth-card .input-field:-webkit-autofill:hover,
+.auth-card .input-field:-webkit-autofill:focus,
+.auth-card .input-field:-webkit-autofill:active {
+  -webkit-text-fill-color: #f4f4f5 !important;
+  -webkit-box-shadow: 0 0 0 1000px #0f0f11 inset !important;
+  border: 1px solid var(--border-glow) !important;
+  transition: background-color 5000s ease-in-out 0s, border-color 5000s ease-in-out 0s;
+}
+
+.auth-card .input-field:-webkit-autofill:focus {
+  border: 1px solid rgba(226, 183, 108, 0.5) !important;
+  -webkit-box-shadow: 0 0 0 1000px #0f0f11 inset, 0 0 0 3px rgba(226, 183, 108, 0.06) !important;
+}
+
+.auth-card .input-field:-moz-autofill {
+  box-shadow: 0 0 0 1000px #0f0f11 inset !important;
+  -moz-text-fill-color: #f4f4f5 !important;
+  border: 1px solid var(--border-glow) !important;
+}
+
+.auth-card .input-field:autofill {
+  box-shadow: 0 0 0 1000px #0f0f11 inset !important;
+  color: #f4f4f5 !important;
+  border: 1px solid var(--border-glow) !important;
+}
+
+.auth-card .input-field:autofill:focus {
+  border: 1px solid rgba(226, 183, 108, 0.5) !important;
+  box-shadow: 0 0 0 1000px #0f0f11 inset, 0 0 0 3px rgba(226, 183, 108, 0.06) !important;
+}
+
 .password-input-wrapper {
   position: relative;
   width: 100%;
 }
 
+.password-input-wrapper .input-field {
+  padding-right: 44px !important;
+}
+
 .btn-toggle-password {
   position: absolute;
-  right: 0;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 10px;
+  padding: 0;
+  width: 20px;
+  height: 20px;
   font-size: 14px;
   transition: color var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
 }
 
 .btn-toggle-password:hover {
@@ -1855,8 +1950,9 @@ select.input-field option {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   font-size: 13px;
+  width: 100%;
 }
 
 .checkbox-label {
@@ -1871,8 +1967,8 @@ select.input-field option {
 
 .checkbox-label input {
   accent-color: var(--primary-color);
-  width: 15px;
-  height: 15px;
+  width: 14px;
+  height: 14px;
   cursor: pointer;
 }
 
@@ -1890,10 +1986,17 @@ select.input-field option {
 
 .auth-footer {
   text-align: center;
-  margin-top: 32px;
+  margin-top: 20px;
   font-size: 13px;
   color: var(--text-muted);
   font-family: var(--font-ui);
+}
+
+.auth-card .btn {
+  width: 100%;
+  box-sizing: border-box;
+  justify-content: center;
+  margin-top: 8px;
 }
 
 /* Password Strength Indicator */
@@ -1989,6 +2092,22 @@ select.input-field option {
   text-align: center;
 }
 
+.auth-card-notice {
+  text-align: center;
+  margin: 16px 0;
+  color: var(--text-main);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.auth-card-notice .verification-status-icon {
+  width: 48px;
+  height: 48px;
+  font-size: 20px;
+  margin: 0 auto 12px auto;
+}
+
 .verification-status-icon {
   width: 64px;
   height: 64px;
@@ -2076,6 +2195,50 @@ body.light-theme .verification-warning-banner {
   border-color: rgba(217, 119, 6, 0.15);
 }
 
+/* Autofill Overrides for Light Mode */
+body.light-theme .auth-card .input-field:-webkit-autofill,
+body.light-theme .auth-card .input-field:-webkit-autofill:hover,
+body.light-theme .auth-card .input-field:-webkit-autofill:focus,
+body.light-theme .auth-card .input-field:-webkit-autofill:active {
+  -webkit-text-fill-color: #18181b !important;
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  border: 1px solid var(--border-glow) !important;
+  transition: background-color 5000s ease-in-out 0s, border-color 5000s ease-in-out 0s;
+}
+
+body.light-theme .auth-card .input-field:-webkit-autofill:focus {
+  border: 1px solid rgba(180, 83, 9, 0.5) !important;
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset, 0 0 0 3px rgba(180, 83, 9, 0.06) !important;
+}
+
+body.light-theme .auth-card .input-field:-moz-autofill {
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -moz-text-fill-color: #18181b !important;
+  border: 1px solid var(--border-glow) !important;
+}
+
+body.light-theme .auth-card .input-field:autofill {
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
+  color: #18181b !important;
+  border: 1px solid var(--border-glow) !important;
+}
+
+body.light-theme .auth-card .input-field:autofill:focus {
+  border: 1px solid rgba(180, 83, 9, 0.5) !important;
+  box-shadow: 0 0 0 1000px #ffffff inset, 0 0 0 3px rgba(180, 83, 9, 0.06) !important;
+}
+
+body.light-theme .auth-card .input-field:focus {
+  border-color: rgba(180, 83, 9, 0.5);
+  box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.06);
+  background-color: rgba(0, 0, 0, 0.005);
+}
+
+body.light-theme .auth-card .input-field.invalid {
+  border-color: var(--danger-color);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
+}
+
 /* ==========================================================================
    Responsive Adaptation & Media Queries
    ========================================================================== */
@@ -2139,6 +2302,22 @@ body.light-theme .verification-warning-banner {
 }
 
 @media (max-width: 480px) {
+  .auth-wrapper {
+    padding: 20px 12px;
+  }
+  .auth-card {
+    padding: 24px 20px;
+    border-radius: 6px;
+  }
+  .auth-brand {
+    font-size: 24px;
+  }
+  .auth-title {
+    font-size: 18px;
+  }
+  .auth-subtitle {
+    font-size: 12px;
+  }
   .portal-content {
     padding: 16px;
   }
