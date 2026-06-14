@@ -91,7 +91,4 @@ Once running, visit `http://localhost:3000` in your web browser.
 * `PUT /students/:id` - Updates an existing student profile.
 * `DELETE /students/:id` - Removes a student record by ID.
 
-## Author
 
-**Harshith Cheripally**
-* GitHub: [@harshithcheripally16-ui](https://github.com/harshithcheripally16-ui)
