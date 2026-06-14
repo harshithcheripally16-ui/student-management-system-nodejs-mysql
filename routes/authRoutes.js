@@ -10,6 +10,7 @@ router.post('/verify-email', authController.verifyEmail);
 router.post('/resend-verification', authController.resendVerification);
 router.post('/forgot-password', authController.forgotPassword);
 router.post('/reset-password', authController.resetPassword);
+router.get('/dev-status', authController.getDevStatus);
 
 // Private/session-authenticated endpoints
 router.get('/me', requireAuth, authController.getMe);

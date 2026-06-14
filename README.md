@@ -63,14 +63,21 @@ DB_CONNECTION_LIMIT=10
 # JWT Security
 JWT_SECRET=your_jwt_signing_secret_here
 
-# SMTP Configuration (Optional for development)
-# If left empty, mail verification and reset links will log directly to the terminal stdout.
-SMTP_HOST=smtp.mailtrap.io
-SMTP_PORT=2525
-SMTP_USER=your_smtp_username
-SMTP_PASS=your_smtp_password
-SMTP_SECURE=false
-SMTP_FROM=CampusOS <noreply@campusos.edu>
+# Automated Email Verification Service (Brevo, Resend, or Mailtrap)
+# Leave empty to trigger the zero-setup developer fallback helper panel.
+EMAIL_PROVIDER=
+EMAIL_FROM=CampusOS <noreply@campusos.edu>
+
+# Option 1: Brevo (Preferred SMTP Relay)
+BREVO_API_KEY=your_brevo_api_key
+BREVO_USER=your_brevo_account_email
+
+# Option 2: Resend
+RESEND_API_KEY=your_resend_api_key
+
+# Option 3: Mailtrap (Development Sandbox)
+MAILTRAP_USER=your_mailtrap_user
+MAILTRAP_PASS=your_mailtrap_password
 ```
 
 ### 3. Initialize & Start

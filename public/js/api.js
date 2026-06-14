@@ -213,6 +213,13 @@ class StudentAPI {
   async getMe() {
     return this._request('/auth/me');
   }
+
+  /**
+   * Fetch dev links status (development only)
+   */
+  async getDevStatus() {
+    return this._request('/auth/dev-status');
+  }
 }
 
 // Expose client instance globally on window

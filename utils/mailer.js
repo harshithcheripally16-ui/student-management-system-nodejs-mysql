@@ -1,16 +1,63 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
-const emailHost = process.env.EMAIL_HOST || process.env.SMTP_HOST;
-const emailPort = parseInt(process.env.EMAIL_PORT || process.env.SMTP_PORT || '587', 10);
-const emailUser = process.env.EMAIL_USER || process.env.SMTP_USER;
-const emailPassword = process.env.EMAIL_PASSWORD || process.env.SMTP_PASS;
-const emailSecure = process.env.EMAIL_SECURE === 'true' || process.env.SMTP_SECURE === 'true';
+let emailHost = process.env.EMAIL_HOST || process.env.SMTP_HOST;
+let emailPort = parseInt(process.env.EMAIL_PORT || process.env.SMTP_PORT || '587', 10);
+let emailUser = process.env.EMAIL_USER || process.env.SMTP_USER;
+let emailPassword = process.env.EMAIL_PASSWORD || process.env.SMTP_PASS;
+let emailSecure = process.env.EMAIL_SECURE === 'true' || process.env.SMTP_SECURE === 'true';
 const emailFrom = process.env.EMAIL_FROM || process.env.SMTP_FROM || 'CampusOS <noreply@campusos.edu>';
 const appUrl = process.env.APP_URL || 'http://localhost:3000';
 
+let providerName = 'custom';
+const provider = (process.env.EMAIL_PROVIDER || '').toLowerCase();
+
+// Auto-configure popular providers
+if (process.env.BREVO_API_KEY && process.env.BREVO_USER) {
+  emailHost = 'smtp-relay.brevo.com';
+  emailPort = 587;
+  emailUser = process.env.BREVO_USER;
+  emailPassword = process.env.BREVO_API_KEY;
+  emailSecure = false;
+  providerName = 'brevo';
+} else if (provider === 'brevo' && emailUser && emailPassword) {
+  emailHost = 'smtp-relay.brevo.com';
+  emailPort = 587;
+  emailSecure = false;
+  providerName = 'brevo';
+} else if (process.env.RESEND_API_KEY) {
+  emailHost = 'smtp.resend.com';
+  emailPort = 587;
+  emailUser = 'resend';
+  emailPassword = process.env.RESEND_API_KEY;
+  emailSecure = false;
+  providerName = 'resend';
+} else if (provider === 'resend' && emailPassword) {
+  emailHost = 'smtp.resend.com';
+  emailPort = 587;
+  emailUser = 'resend';
+  emailSecure = false;
+  providerName = 'resend';
+} else if (process.env.MAILTRAP_USER && process.env.MAILTRAP_PASS) {
+  emailHost = 'sandbox.smtp.mailtrap.io';
+  emailPort = 2525;
+  emailUser = process.env.MAILTRAP_USER;
+  emailPassword = process.env.MAILTRAP_PASS;
+  emailSecure = false;
+  providerName = 'mailtrap';
+} else if (provider === 'mailtrap' && emailUser && emailPassword) {
+  emailHost = 'sandbox.smtp.mailtrap.io';
+  emailPort = 2525;
+  emailSecure = false;
+  providerName = 'mailtrap';
+}
+
 let transporter;
 let isFallback = false;
+
+// In-memory capture for development testing
+let lastVerificationLink = null;
+let lastPasswordResetLink = null;
 
 if (emailHost && emailUser && emailPassword) {
   transporter = nodemailer.createTransport({
@@ -60,18 +107,31 @@ const verifySMTP = async () => {
       console.log('[Mailer] SMTP credentials are not configured. Falling back to Console mailer logging.');
       return true;
     }
-    console.log(`[Mailer] Validating SMTP connection to ${emailHost}:${emailPort}...`);
+    console.log(`[Mailer] Validating SMTP connection to ${emailHost}:${emailPort} using provider [${providerName}]...`);
     await transporter.verify();
-    console.log('[Mailer] SMTP connection verified successfully. Ready to send emails.');
+    console.log(`[Mailer] SMTP connection verified successfully for [${providerName}]. Ready to send emails.`);
     return true;
   } catch (err) {
-    console.error('[Mailer Warning] SMTP connection validation failed:', err.message);
+    console.error(`[Mailer Warning] SMTP connection validation failed for [${providerName}]:`, err.message);
+    // Mark as fallback so the dev links endpoint is active if needed
+    isFallback = true;
     return false;
   }
 };
 
+const getMailStatus = () => {
+  return {
+    isFallback,
+    providerName: isFallback ? 'console-fallback' : providerName,
+    lastVerificationLink,
+    lastPasswordResetLink
+  };
+};
+
 const sendVerificationEmail = async (to, name, token) => {
   const verifyUrl = `${appUrl}/#/verify-email/${token}`;
+  lastVerificationLink = verifyUrl;
+  console.log(`[Mailer] Capture verification link for ${to}: ${verifyUrl}`);
   console.log(`[Mailer] Attempting to send verification email to: ${to}...`);
   
   const html = `
@@ -117,6 +177,8 @@ const sendVerificationEmail = async (to, name, token) => {
 
 const sendPasswordResetEmail = async (to, name, token) => {
   const resetUrl = `${appUrl}/#/reset-password/${token}`;
+  lastPasswordResetLink = resetUrl;
+  console.log(`[Mailer] Capture password reset link for ${to}: ${resetUrl}`);
   console.log(`[Mailer] Attempting to send password reset email to: ${to}...`);
   
   const html = `
@@ -186,5 +248,6 @@ module.exports = {
   sendVerificationEmail,
   sendPasswordResetEmail,
   sendTestEmail,
-  verifySMTP
+  verifySMTP,
+  getMailStatus
 };

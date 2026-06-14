@@ -367,6 +367,30 @@ class AuthController {
       next(error);
     }
   }
+
+  /**
+   * @route   GET /auth/dev-status
+   * @desc    Get development SMTP links for testing (development only)
+   * @access  Public
+   */
+  async getDevStatus(req, res, next) {
+    try {
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(403).json({
+          success: false,
+          message: 'Development tools are not available in production mode.'
+        });
+      }
+      const mailer = require('../utils/mailer');
+      const status = mailer.getMailStatus();
+      return res.status(200).json({
+        success: true,
+        ...status
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new AuthController();

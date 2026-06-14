@@ -31,6 +31,7 @@ class AppController {
     // Authentication State
     this.currentUser = null;
     this.isAuthenticating = true;
+    this.devPanelInterval = null;
     
     this.initDrawer();
     this.initModals();
@@ -257,6 +258,7 @@ class AppController {
       await this.renderPortalWrapper(hash);
     } finally {
       this.isLoadingRoute = false;
+      this.updateDevPanel(window.location.hash || '#/landing');
     }
   }
 
@@ -2763,6 +2765,158 @@ class AppController {
         </div>
       </div>
     `;
+  }
+
+  async updateDevPanel(hash) {
+    const authHashes = ['#/login', '#/register', '#/forgot-password', '#/check-email', '#/verification-required'];
+    const isAuthPage = authHashes.includes(hash) || hash.startsWith('#/verify-email') || hash.startsWith('#/reset-password');
+
+    if (!isAuthPage) {
+      const existingPanel = document.getElementById('dev-helper-panel');
+      if (existingPanel) existingPanel.remove();
+      if (this.devPanelInterval) {
+        clearInterval(this.devPanelInterval);
+        this.devPanelInterval = null;
+      }
+      return;
+    }
+
+    try {
+      const res = await window.studentApi.getDevStatus();
+      if (res.success && res.isFallback) {
+        this.renderDevPanel(res.lastVerificationLink, res.lastPasswordResetLink);
+        if (!this.devPanelInterval) {
+          this.devPanelInterval = setInterval(async () => {
+            try {
+              const statusRes = await window.studentApi.getDevStatus();
+              if (statusRes.success) {
+                this.updateDevPanelLinks(statusRes.lastVerificationLink, statusRes.lastPasswordResetLink);
+              }
+            } catch (err) {
+              // Ignore API errors
+            }
+          }, 2000);
+        }
+      } else {
+        const existingPanel = document.getElementById('dev-helper-panel');
+        if (existingPanel) existingPanel.remove();
+      }
+    } catch (err) {
+      const existingPanel = document.getElementById('dev-helper-panel');
+      if (existingPanel) existingPanel.remove();
+    }
+  }
+
+  renderDevPanel(verifyLink, resetLink) {
+    let panel = document.getElementById('dev-helper-panel');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = 'dev-helper-panel';
+      panel.style.cssText = `
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background-color: #0f0f10;
+        border: 1px solid var(--primary-color);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(226, 183, 108, 0.1);
+        padding: 20px;
+        border-radius: 8px;
+        width: 320px;
+        z-index: 999999;
+        font-family: var(--font-ui);
+        color: var(--text-main);
+        animation: slideInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      `;
+      document.body.appendChild(panel);
+
+      const styleId = 'dev-helper-styles';
+      if (!document.getElementById(styleId)) {
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+          @keyframes slideInUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+          }
+          @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.5; }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+    }
+
+    this.updateDevPanelLinks(verifyLink, resetLink);
+  }
+
+  updateDevPanelLinks(verifyLink, resetLink) {
+    const panel = document.getElementById('dev-helper-panel');
+    if (!panel) return;
+
+    let linksHtml = '';
+    if (!verifyLink && !resetLink) {
+      linksHtml = `
+        <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5; padding: 10px; border: 1px dashed rgba(255,255,255,0.05); text-align: center; border-radius: 4px; background: rgba(255,255,255,0.01);">
+          <i class="fa-solid fa-hourglass" style="margin-bottom: 6px; color: var(--primary-color); display: block;"></i>
+          No verification or reset links captured yet.<br>
+          <span style="font-size: 10px; color: #52525b;">Submit a signup or reset request to populate.</span>
+        </div>
+      `;
+    } else {
+      if (verifyLink) {
+        linksHtml += `
+          <div style="margin-bottom: 12px; padding: 10px; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 4px;">
+            <div style="font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; color: var(--success-color); margin-bottom: 4px; font-weight: bold;">
+              <i class="fa-solid fa-envelope-open-text"></i> Verification Link
+            </div>
+            <a href="${verifyLink}" style="color: #fff; text-decoration: underline; font-size: 11px; word-break: break-all; font-weight: 500;">
+              Simulate Account Activation
+            </a>
+          </div>
+        `;
+      }
+      if (resetLink) {
+        linksHtml += `
+          <div style="padding: 10px; background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 4px;">
+            <div style="font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; color: var(--warning-color); margin-bottom: 4px; font-weight: bold;">
+              <i class="fa-solid fa-key"></i> Password Reset Link
+            </div>
+            <a href="${resetLink}" style="color: #fff; text-decoration: underline; font-size: 11px; word-break: break-all; font-weight: 500;">
+              Simulate Password Reset
+            </a>
+          </div>
+        `;
+      }
+    }
+
+    panel.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 8px;">
+        <span style="font-family: var(--font-display); font-weight: 700; font-size: 12px; color: var(--primary-color); letter-spacing: 0.5px; text-transform: uppercase; display: flex; align-items: center; gap: 6px;">
+          <span style="display: inline-block; width: 6px; height: 6px; background: var(--primary-color); border-radius: 50%; animation: pulse 1.5s infinite;"></span>
+          CampusOS Dev Helper
+        </span>
+        <button id="btn-close-dev-panel" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 0 4px; hover: { color: #fff }">&times;</button>
+      </div>
+      <p style="font-size: 11px; color: var(--text-secondary); margin: 0 0 12px 0; line-height: 1.4;">
+        Active in local test environment. Verification/reset links are automatically captured below:
+      </p>
+      <div id="dev-links-container">
+        ${linksHtml}
+      </div>
+    `;
+
+    const btnClose = document.getElementById('btn-close-dev-panel');
+    if (btnClose) {
+      btnClose.addEventListener('click', () => {
+        panel.remove();
+        if (this.devPanelInterval) {
+          clearInterval(this.devPanelInterval);
+          this.devPanelInterval = null;
+        }
+      });
+    }
   }
 }
 
