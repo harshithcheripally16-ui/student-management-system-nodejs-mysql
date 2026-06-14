@@ -53,6 +53,18 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Register auth REST API routes
 app.use('/auth', authRoutes);
 
+// Register SMTP diagnostic test route
+const mailer = require('./utils/mailer');
+app.get('/test-email', async (req, res, next) => {
+  try {
+    const to = req.query.to || process.env.EMAIL_USER || 'admin@campusos.edu';
+    const info = await mailer.sendTestEmail(to);
+    res.status(200).json({ success: true, message: `Test email sent to ${to}`, info });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // Register student REST API routes (protected)
 app.use('/students', requireAuth, requireVerified, studentRoutes);
 

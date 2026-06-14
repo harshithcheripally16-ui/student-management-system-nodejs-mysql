@@ -15,8 +15,10 @@ class AuthController {
   async register(req, res, next) {
     try {
       const { name, email, password } = req.body;
+      console.log(`[Auth Controller] Registration request received for email: ${email}`);
 
       if (!name || !email || !password) {
+        console.warn(`[Auth Controller] Registration failed: Missing fields for ${email}`);
         return res.status(400).json({
           success: false,
           message: 'Please provide name, email, and password.'
@@ -26,6 +28,7 @@ class AuthController {
       // Check if user already exists
       const existingUser = await userModel.findByEmail(email);
       if (existingUser) {
+        console.warn(`[Auth Controller] Registration failed: User with email ${email} already exists.`);
         return res.status(400).json({
           success: false,
           message: 'An account is already registered with this email address.'
@@ -37,6 +40,7 @@ class AuthController {
 
       // Generate verification token (signed JWT, expires in 24 hours)
       const verificationToken = jwt.sign({ email }, JWT_SECRET, { expiresIn: '24h' });
+      console.log(`[Auth Controller] Verification token generated for email: ${email}`);
 
       // Create unverified user
       const newUser = await userModel.create({
@@ -45,12 +49,15 @@ class AuthController {
         password_hash: passwordHash,
         verification_token: verificationToken
       });
+      console.log(`[Auth Controller] Unverified user record created in DB for email: ${email} (ID: ${newUser.id})`);
 
       // Send verification email (asynchronous fallback)
       try {
+        console.log(`[Auth Controller] Initiating verification email delivery to: ${email}`);
         await mailer.sendVerificationEmail(email, name, verificationToken);
+        console.log(`[Auth Controller] Verification email process successfully completed for: ${email}`);
       } catch (mailErr) {
-        console.error('[Mailer Error] Failed to send registration verification email:', mailErr.message);
+        console.error(`[Auth Controller Error] Failed to send registration verification email to ${email}:`, mailErr.message);
         // Do not crash registration if mailer fails in dev; print warning
       }
 
@@ -74,8 +81,10 @@ class AuthController {
   async login(req, res, next) {
     try {
       const { email, password, rememberMe } = req.body;
+      console.log(`[Auth Controller] Login request received for email: ${email}`);
 
       if (!email || !password) {
+        console.warn(`[Auth Controller] Login failed: Missing email or password.`);
         return res.status(400).json({
           success: false,
           message: 'Please enter both email and password.'
@@ -85,6 +94,7 @@ class AuthController {
       // Find user
       const user = await userModel.findByEmail(email);
       if (!user) {
+        console.warn(`[Auth Controller] Login failed: Invalid email ${email}`);
         return res.status(401).json({
           success: false,
           message: 'Invalid email address or password.'
@@ -94,6 +104,7 @@ class AuthController {
       // Verify password
       const isMatch = await bcrypt.compare(password, user.password_hash);
       if (!isMatch) {
+        console.warn(`[Auth Controller] Login failed: Incorrect password for ${email}`);
         return res.status(401).json({
           success: false,
           message: 'Invalid email address or password.'
@@ -102,6 +113,7 @@ class AuthController {
 
       // Verify email status
       if (!user.is_verified) {
+        console.warn(`[Auth Controller] Blocked login attempt: ${email} is not verified.`);
         return res.status(403).json({
           success: false,
           isVerified: false,
@@ -113,6 +125,7 @@ class AuthController {
       // Generate session token (Remember Me expands expiry to 30 days)
       const tokenExpiry = rememberMe ? '30d' : '2h';
       const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: tokenExpiry });
+      console.log(`[Auth Controller] Login successful for user: ${email} (ID: ${user.id}). Token generated.`);
 
       const { password_hash, ...safeUser } = user;
 
@@ -135,8 +148,10 @@ class AuthController {
   async verifyEmail(req, res, next) {
     try {
       const { token } = req.body;
+      console.log(`[Auth Controller] Verification link click/request received with token: ${token}`);
 
       if (!token) {
+        console.warn(`[Auth Controller] Verification failed: Token not provided.`);
         return res.status(400).json({
           success: false,
           message: 'Verification token is required.'
@@ -147,6 +162,7 @@ class AuthController {
       try {
         jwt.verify(token, JWT_SECRET);
       } catch (err) {
+        console.warn(`[Auth Controller] Verification failed: Token is invalid or has expired. Error: ${err.message}`);
         return res.status(400).json({
           success: false,
           message: 'Verification link is invalid or has expired.'
@@ -156,6 +172,7 @@ class AuthController {
       // Check DB for matching token
       const user = await userModel.findByVerificationToken(token);
       if (!user) {
+        console.warn(`[Auth Controller] Verification failed: No user found matching token or token already used.`);
         return res.status(400).json({
           success: false,
           message: 'Verification link is invalid or has already been used.'
@@ -167,6 +184,7 @@ class AuthController {
         is_verified: 1,
         verification_token: null
       });
+      console.log(`[Auth Controller] Email verified successfully for user: ${user.email} (ID: ${user.id}). Token cleared.`);
 
       return res.status(200).json({
         success: true,
@@ -185,8 +203,10 @@ class AuthController {
   async resendVerification(req, res, next) {
     try {
       const { email } = req.body;
+      console.log(`[Auth Controller] Request to resend verification email for: ${email}`);
 
       if (!email) {
+        console.warn(`[Auth Controller] Resend failed: Email not provided.`);
         return res.status(400).json({
           success: false,
           message: 'Email address is required.'
@@ -195,6 +215,7 @@ class AuthController {
 
       const user = await userModel.findByEmail(email);
       if (!user) {
+        console.warn(`[Auth Controller] Resend failed: No account associated with ${email}`);
         return res.status(404).json({
           success: false,
           message: 'No account found with this email address.'
@@ -202,6 +223,7 @@ class AuthController {
       }
 
       if (user.is_verified) {
+        console.warn(`[Auth Controller] Resend failed: Account is already verified for ${email}`);
         return res.status(400).json({
           success: false,
           message: 'Account is already verified.'
@@ -211,12 +233,15 @@ class AuthController {
       // Generate new token and save
       const verificationToken = jwt.sign({ email }, JWT_SECRET, { expiresIn: '24h' });
       await userModel.update(user.id, { verification_token: verificationToken });
+      console.log(`[Auth Controller] Generated new verification token for resend to: ${email}`);
 
       // Send email
       try {
+        console.log(`[Auth Controller] Initiating resending of verification email to: ${email}`);
         await mailer.sendVerificationEmail(email, user.name, verificationToken);
+        console.log(`[Auth Controller] Verification email resent successfully to: ${email}`);
       } catch (mailErr) {
-        console.error('[Mailer Error] Failed to resend verification email:', mailErr.message);
+        console.error(`[Auth Controller Error] Failed to resend verification email to ${email}:`, mailErr.message);
       }
 
       return res.status(200).json({

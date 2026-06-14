@@ -18,7 +18,11 @@ async function startServer() {
     // 1. Verify connection to the MySQL Database before starting the web server
     await testConnection();
 
-    // 2. Start listening on the specified port
+    // 2. Verify SMTP mailer connection
+    const mailer = require('./utils/mailer');
+    await mailer.verifySMTP();
+
+    // 3. Start listening on the specified port
     const server = app.listen(PORT, () => {
       console.log(`[Server] Application is running in ${process.env.NODE_ENV || 'development'} mode`);
       console.log(`[Server] Local server URL: http://localhost:${PORT}`);
